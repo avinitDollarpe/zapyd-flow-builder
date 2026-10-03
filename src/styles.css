@@ -1088,7 +1088,7 @@ button.row:hover { background: var(--gray-50); }
 /* Concentric with the sheet's 12px side padding: 12px row radius */
 .kitem { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 6px 8px; border-radius: 12px; text-align: left; transition-property: background-color, scale; transition-duration: 150ms; }
 .kitem:hover:not(:disabled), .kitem.on, .kitem[aria-selected='true'] { background: var(--gray-50); }
-:root[data-theme='dark'] .kitem:hover:not(:disabled), :root[data-theme='dark'] .kitem.on { background: var(--k-field); }
+:root[data-theme='dark'] .kitem:hover:not(:disabled), :root[data-theme='dark'] .kitem.on, :root[data-theme='dark'] .kitem[aria-selected='true'] { background: var(--k-field); }
 .kitem:active:not(:disabled) { scale: 0.96; }
 .kitem:disabled { opacity: 0.45; cursor: not-allowed; }
 .kitem > .flag, .kitem > svg:first-child { flex: none; }
