@@ -1160,23 +1160,29 @@ function Frame(p: { title: ReactNode; sub?: ReactNode; children?: ReactNode; cta
   )
 }
 
-function Field(p: { label: string; value: string; onChange: (v: string) => void; type?: string; hint?: string; mono?: boolean; inputMode?: 'email' | 'numeric' | 'tel' | 'text'; autoComplete?: string; lead?: ReactNode }) {
+// `valid` (default true) gates the check; a non-empty invalid value shows the
+// error ring and turns the hint red once the field loses focus.
+function Field(p: { label: string; value: string; onChange: (v: string) => void; type?: string; hint?: string; placeholder?: string; valid?: boolean; mono?: boolean; inputMode?: 'email' | 'numeric' | 'tel' | 'text'; autoComplete?: string; lead?: ReactNode }) {
+  const filled = p.value.trim().length > 0
+  const invalid = filled && p.valid === false
   return (
     <label className="kfield">
       <span className="klabel">{p.label}</span>
-      <span className={`kinput${p.value.trim() ? ' filled' : ''}`}>
+      <span className={`kinput${filled && !invalid ? ' filled' : ''}${invalid ? ' invalid' : ''}`}>
         {p.lead}
         <input
           className={p.mono ? 'kmono' : undefined}
           type={p.type ?? 'text'}
           inputMode={p.inputMode}
           autoComplete={p.autoComplete}
+          placeholder={p.placeholder}
           value={p.value}
+          aria-invalid={invalid || undefined}
           onChange={(e) => p.onChange(e.target.value)}
         />
         <Ok />
       </span>
-      {p.hint && <span className="khint">{p.hint}</span>}
+      {p.hint && <span className={`khint${invalid ? ' invalid' : ''}`}>{p.hint}</span>}
     </label>
   )
 }
@@ -1188,8 +1194,8 @@ function SignUp(p: ScreenProps & { user: User; onUser: (u: Partial<User>) => voi
   const ok = p.user.name.trim().length > 1 && validEmail(p.user.email) && tos
   return (
     <Frame title="Create your account" sub="Start with your name and email. You'll verify both next." cta="Continue" ok={ok} onNext={() => p.onNext()}>
-      <Field label="Full name" value={p.user.name} onChange={(name) => p.onUser({ name })} autoComplete="name" hint="As it appears on your ID." />
-      <Field label="Email address" type="email" inputMode="email" value={p.user.email} onChange={(email) => p.onUser({ email })} autoComplete="email" />
+      <Field label="Full name" value={p.user.name} onChange={(name) => p.onUser({ name })} autoComplete="name" placeholder="First and last name" hint="As it appears on your ID." valid={p.user.name.trim().length > 1} />
+      <Field label="Email address" type="email" inputMode="email" value={p.user.email} onChange={(email) => p.onUser({ email })} autoComplete="email" placeholder="you@example.com" hint="We'll send a code here." valid={validEmail(p.user.email)} />
       <label className="ktos">
         <input type="checkbox" checked={tos} onChange={(e) => setTos(e.target.checked)} />
         <span className="kbox" aria-hidden="true">
@@ -1367,9 +1373,9 @@ function KycPan(p: ScreenProps & { user: User }) {
   const ok = name.trim().length > 1 && /^\d{2}-\d{2}-\d{4}$/.test(dob) && /^[A-Z]{5}\d{4}[A-Z]$/.test(pan)
   return (
     <Frame title="PAN verification" sub="Enter your Permanent Account Number to complete the tax identity check." cta="Verify PAN" ok={ok} onNext={() => p.onNext()}>
-      <Field label="Name as on PAN" value={name} onChange={setName} />
-      <Field label="Date of birth" value={dob} onChange={setDob} hint="DD-MM-YYYY" inputMode="numeric" />
-      <Field label="PAN" value={pan} onChange={(v) => setPan(v.toUpperCase().slice(0, 10))} hint="5 letters, 4 digits, then 1 letter" mono />
+      <Field label="Name as on PAN" value={name} onChange={setName} valid={name.trim().length > 1} />
+      <Field label="Date of birth" value={dob} onChange={setDob} hint="DD-MM-YYYY" placeholder="DD-MM-YYYY" inputMode="numeric" valid={/^\d{2}-\d{2}-\d{4}$/.test(dob)} />
+      <Field label="PAN" value={pan} onChange={(v) => setPan(v.toUpperCase().slice(0, 10))} hint="5 letters, 4 digits, then 1 letter" placeholder="ABCDE1234F" mono valid={/^[A-Z]{5}\d{4}[A-Z]$/.test(pan)} />
     </Frame>
   )
 }
