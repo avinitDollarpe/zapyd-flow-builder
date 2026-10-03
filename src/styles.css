@@ -816,7 +816,16 @@ button.row:hover { background: var(--gray-50); }
 .kcard > div + div { border-top: 1px solid var(--hair); }
 .kcard dt { color: var(--gray-500); }
 .kcard dd { margin: 0; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.kaddress { display: block; padding: 12px 14px; box-shadow: inset 0 0 0 1px var(--k-line); border-radius: 12px; background: var(--k-field); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+/* QR card. Concentric: 20px card = 8px tile + 12px padding. The tile stays white in dark mode so it scans. */
+.kqr { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 12px 6px; border-radius: 20px; background: var(--gray-50); box-shadow: var(--ring); }
+:root[data-theme='dark'] .kqr { background: var(--k-field); }
+.kqr-code { position: relative; display: block; width: 168px; height: 168px; padding: 10px; border-radius: 8px; background: #fff; color: #0a0a0a; outline: 1px solid oklch(0 0 0 / 0.1); outline-offset: -1px; }
+.kqr-code svg { display: block; width: 100%; height: 100%; }
+.kqr-logo { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: grid; padding: 3px; border-radius: 50%; background: #fff; }
+.kqr-hint { font-size: 12px; line-height: 16px; color: var(--gray-500); }
+.kqr-addr { display: flex; align-items: center; gap: 4px; width: 100%; padding-left: 4px; }
+.kqr-addr code { flex: 1; min-width: 0; font-size: 11.5px; line-height: 16px; color: var(--gray-700); overflow-wrap: anywhere; }
+.kqr-addr .icon-btn { flex: none; }
 
 .kbtn {
   position: relative;

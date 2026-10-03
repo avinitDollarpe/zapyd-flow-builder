@@ -12,7 +12,7 @@ function curl(st: Step) {
   return lines.join('\n')
 }
 
-function useCopy() {
+export function useCopy() {
   const [done, setDone] = useState<string | null>(null)
   const copy = (key: string, text: string) => {
     navigator.clipboard?.writeText(text).then(() => {

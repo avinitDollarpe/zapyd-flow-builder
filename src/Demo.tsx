@@ -6,7 +6,8 @@
 // response is the documented example from the API reference, filled in with
 // the request's values.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Highlight, Rich } from './Code'
+import qrcode from 'qrcode-generator'
+import { Highlight, Rich, useCopy } from './Code'
 import RESPONSES from './data/responses.json'
 import {
   DEFAULTS,
@@ -1796,6 +1797,49 @@ function Preview(p: ScreenProps) {
   )
 }
 
+// ---------------------------------------------------------------- QR
+
+// QR for a wallet address or a UPI deep link: the modules as one SVG path,
+// a logo over the centre (ECC M leaves room for it), the value below with copy.
+function Qr({ value, logo }: { value: string; logo?: ReactNode }) {
+  const d = useMemo(() => {
+    const q = qrcode(0, 'M')
+    q.addData(value)
+    q.make()
+    const n = q.getModuleCount()
+    let path = ''
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) path += `M${c} ${r}h1v1h-1z`
+    return { n, path }
+  }, [value])
+  return (
+    <span className="kqr-code" aria-hidden="true">
+      <svg viewBox={`0 0 ${d.n} ${d.n}`} shapeRendering="crispEdges">
+        <path d={d.path} fill="currentColor" />
+      </svg>
+      {logo && <span className="kqr-logo">{logo}</span>}
+    </span>
+  )
+}
+
+function QrCard({ value, label, logo, hint }: { value: string; label: string; logo?: ReactNode; hint: string }) {
+  const { done, copy } = useCopy()
+  return (
+    <div className="kfield">
+      <span className="klabel">{label}</span>
+      <div className="kqr">
+        <Qr value={value} logo={logo} />
+        <span className="kqr-hint">{hint}</span>
+        <span className="kqr-addr">
+          <code>{value}</code>
+          <button type="button" className="icon-btn" onClick={() => copy(value, value)} aria-label="Copy">
+            <Swap on={done === value} a="copy" b="check" size={14} />
+          </button>
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- flow screens
 
 function FlowScreen(p: { st: Step; c: Ctx; busy: boolean; edits: Record<string, string>; onEdit: (k: string, v: string) => void; onRun: () => void; hash: string }) {
@@ -1908,11 +1952,14 @@ function FlowScreen(p: { st: Step; c: Ctx; busy: boolean; edits: Record<string, 
 
           {st.id === 'payin-pay' && payinQ && (
             <>
+              {payinQ.deposit_instructions?.deep_link && (
+                <QrCard value={payinQ.deposit_instructions.deep_link} label="Pay with any UPI app" hint="Scan, or open the link on this phone" />
+              )}
               <QuoteSummary q={payinQ} payin />
               {payinQ.deposit_instructions && (
                 <div className="kfield">
-                  <span className="klabel">{c.o.payinMethod === 'UPI' ? 'Pay with any UPI app' : 'Transfer to'}</span>
-                  <Rows rows={Object.entries(payinQ.deposit_instructions as Json).filter(([k]) => k !== 'ios_checkout_link').map(([k, v]) => [label(k), String(v)])} />
+                  <span className="klabel">{c.o.payinMethod === 'UPI' ? 'Or pay to' : 'Transfer to'}</span>
+                  <Rows rows={Object.entries(payinQ.deposit_instructions as Json).filter(([k]) => k !== 'ios_checkout_link' && k !== 'deep_link').map(([k, v]) => [label(k), String(v)])} />
                 </div>
               )}
             </>
@@ -1924,11 +1971,8 @@ function FlowScreen(p: { st: Step; c: Ctx; busy: boolean; edits: Record<string, 
           )}
           {st.id === 'payout-send' && payoutQ && (
             <>
+              <QrCard value={payoutQ.wallet_address} label={`To this ${net} address`} logo={<Icon name={`net:${c.o.network}`} size={28} />} hint={`${c.asset} on ${net} only`} />
               <QuoteSummary q={payoutQ} payin={false} />
-              <div className="kfield">
-                <span className="klabel">To this {net} address</span>
-                <code className="kaddress">{payoutQ.wallet_address}</code>
-              </div>
             </>
           )}
         </div>
