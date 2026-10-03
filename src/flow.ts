@@ -318,7 +318,8 @@ export interface Flow {
 }
 
 export const HOST = 'https://sandbox.zapyd.com'
-const DOCS = 'https://docs.zapyd.com'
+// Mintlify host until docs.zapyd.com is live.
+const DOCS = 'https://dollarpe.mintlify.site'
 export const ID = {
   payer: '075986f3-282b-4555-bfcd-fad973e32596',
   beneficiary: '84737c7d-7b62-4204-80d6-80f6ecb3ceb4',
