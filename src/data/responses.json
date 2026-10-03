@@ -1,0 +1,395 @@
+{
+  "/kyc/generate-link": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "url": "https://app.zapyd.com/kyc?kyc_id=977c8923-3818-4880-bfbf-65436635ea91",
+      "is_mocked": true
+    }
+  },
+  "/kyc/add-kyc-data": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "PROCESSING",
+      "failure_reason": null
+    }
+  },
+  "/kyc/remitter/create": {
+    "status": true,
+    "message": "Remitter created",
+    "data": {
+      "id": "e14fa86f-2a5e-437a-a031-949c68ade933",
+      "client_reference_id": "remitter-ref-001",
+      "first_name": "Siva",
+      "last_name": "Raj",
+      "full_name": "Siva Raj",
+      "email": null,
+      "phone": "+61412345678",
+      "dob": "1990-01-15",
+      "nationality": "IND",
+      "residence_country": "ARE",
+      "city": "Sydney",
+      "address_line": "1 George Street",
+      "source_of_funds": "salary",
+      "document_type": "PASSPORT",
+      "status": "VERIFIED",
+      "created_at": "2026-09-30T10:00:00+00:00"
+    }
+  },
+  "/kyc/remittance-beneficiary-kyc": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "ea6899a3-abb9-4418-8878-e23f5021e38f",
+      "customer_id": "638d9a52-9427-460e-99ba-948d46ce349c"
+    }
+  },
+  "/kyc/payout/add-kyc-data": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "PROCESSING",
+      "failure_reason": null
+    }
+  },
+  "/kyc/payout/add-sender-kyc-data": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "7a1c0e7e-2b53-4f7e-9d2f-6d6e2b1c9a10",
+      "client_reference_id": "beneficiary-001"
+    }
+  },
+  "/bank/create": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "4e6f1b20-a73c-11ec-b909-0242ac120002",
+      "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+      "country": "IND",
+      "bank_account_type": "ACCOUNT_DETAILS",
+      "identifiers": {
+        "account_number": "7627389201",
+        "ifsc": "SBIN0001829"
+      },
+      "bank_account_status": "VERIFIED",
+      "beneficiary_name": "JOHN DOE",
+      "bank_name": "State Bank of India",
+      "failure_reason": null
+    }
+  },
+  "/bank/payout/create": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "4e6f1b20-a73c-11ec-b909-0242ac120002",
+      "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+      "country": "IND",
+      "bank_account_type": "ACCOUNT_DETAILS",
+      "identifiers": {
+        "account_number": "7627389201",
+        "ifsc": "SBIN0001829"
+      },
+      "bank_account_status": "VERIFIED",
+      "beneficiary_name": "JOHN DOE",
+      "bank_name": "State Bank of India",
+      "failure_reason": null
+    }
+  },
+  "/payout/balance": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "available_balance": {
+        "USDT": "15000.5"
+      }
+    }
+  },
+  "/remittance-payout/quotation": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "59bf60c3-e9af-40a7-9d5c-2a1aa191e769",
+      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
+      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
+      "remitter_id": "e14fa86f-2a5e-437a-a031-949c68ade933",
+      "asset": "USDT",
+      "fiat": "INR",
+      "network": "tron",
+      "sending_amount": "60.00",
+      "rate": "85.00",
+      "receiving_amount": "5100.00",
+      "fees": {
+        "zapyd_fee": "0.00",
+        "client_fee": "0.00",
+        "client_gst": "0.00",
+        "tds": "0"
+      },
+      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
+      "created_at": "2026-09-30T10:00:00Z",
+      "expiry_time": "2026-09-30T10:10:00Z"
+    }
+  },
+  "/remittance-payout/initiate": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "quotation_id": "59bf60c3-e9af-40a7-9d5c-2a1aa191e769",
+      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
+      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
+      "remitter_id": "e14fa86f-2a5e-437a-a031-949c68ade933",
+      "asset": "USDT",
+      "network": "tron",
+      "fiat": "INR",
+      "rate": "85.00",
+      "sending_amount": "60.00",
+      "receiving_amount": "5100.00",
+      "client_reference_id": "payout-ref-001",
+      "fees": {
+        "zapyd_fee": "0.00",
+        "client_fee": "0.00",
+        "client_gst": "0.00",
+        "tds": "0"
+      },
+      "status": "PROCESSING",
+      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
+      "transaction_hash": "0x9f2c\u2026",
+      "created_at": "2026-09-30T10:00:00Z"
+    }
+  },
+  "/prefunded/payout/quotation": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "59bf60c3-e9af-40a7-9d5c-2a1aa191e769",
+      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
+      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
+      "asset": "USDT",
+      "fiat": "INR",
+      "network": "tron",
+      "sending_amount": "60.00",
+      "rate": "85.00",
+      "receiving_amount": "5100.00",
+      "fees": {
+        "zapyd_fee": "0.00",
+        "client_fee": "0.00",
+        "client_gst": "0.00",
+        "tds": "0"
+      },
+      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
+      "created_at": "2026-09-30T10:00:00Z",
+      "expiry_time": "2026-09-30T10:10:00Z"
+    }
+  },
+  "/prefunded/payout/initiate": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "quotation_id": "59bf60c3-e9af-40a7-9d5c-2a1aa191e769",
+      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
+      "asset": "USDT",
+      "network": "tron",
+      "fiat": "INR",
+      "rate": "85.00",
+      "sending_amount": "60.00",
+      "receiving_amount": "5100.00",
+      "client_reference_id": "payout-ref-001",
+      "fees": {
+        "zapyd_fee": "0.00",
+        "client_fee": "0.00",
+        "client_gst": "0.00",
+        "tds": "0"
+      },
+      "status": "PROCESSING",
+      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
+      "transaction_hash": "0x9f2c\u2026",
+      "utr": "412345678901",
+      "failure_reason": null,
+      "updated_at": "2026-09-30T10:05:00Z",
+      "created_at": "2026-09-30T10:00:00Z",
+      "customer": {
+        "sender": {
+          "id": "1b2c3d4e-5f60-4a7b-8c9d-0e1f2a3b4c5d"
+        },
+        "receiver": {
+          "id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4"
+        }
+      }
+    }
+  },
+  "/payin/quotation": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "6a1c0e7e-2b53-4f7e-9d2f-6d6e2b1c9a10",
+      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
+      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
+      "asset": "USDT",
+      "fiat": "INR",
+      "network": "tron",
+      "payment_method": "IMPS",
+      "sending_amount": "10000.00",
+      "rate": "91.91",
+      "receiving_amount": "108.80",
+      "fees": {
+        "client_fee_fiat": 450.0,
+        "client_fee_crypto": 5,
+        "zapyd_fee": 450.0,
+        "pg_fee": 18.0,
+        "client_gst_fiat": 81.0,
+        "client_gst_crypto": 0.9,
+        "zapyd_gst": 81.0,
+        "pg_gst": 81.0,
+        "tds": 889.17,
+        "gross_effective_exchange_rate": 88.92
+      },
+      "deposit_instructions": {
+        "account_number": "1234567890",
+        "ifsc": "1234567890",
+        "account_name": "Sandbox Technologies Pvt Ltd",
+        "deep_link": "upi://pay?pa=testing-payin@ybl&am=1000",
+        "ios_checkout_link": "https://pay.google.com/upi/deeplink?pa=testing-payin@ybl&am=1000"
+      },
+      "created_at": "2026-09-30T10:00:00Z",
+      "expiry_time": "2026-09-30T10:10:00Z"
+    }
+  },
+  "/payin/initiate": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "6a1c0e7e-2b53-4f7e-9d2f-6d6e2b1c9a10",
+      "quotation_id": "2e104290-07c8-49f1-a5ca-0d27f0078f8a",
+      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
+      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
+      "asset": "USDT",
+      "fiat": "INR",
+      "network": "tron",
+      "payment_method": "IMPS",
+      "sending_amount": "10000.00",
+      "rate": "91.91",
+      "receiving_amount": "108.80",
+      "fees": {
+        "client_fee_fiat": 450.0,
+        "client_fee_crypto": 5,
+        "zapyd_fee": 450.0,
+        "pg_fee": 18.0,
+        "client_gst_fiat": 81.0,
+        "client_gst_crypto": 0.9,
+        "zapyd_gst": 81.0,
+        "pg_gst": 81.0,
+        "tds": 889.17,
+        "gross_effective_exchange_rate": 88.92
+      },
+      "client_reference_id": "payin-ref-001",
+      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
+      "transaction_reference_id": "412345678901",
+      "status": "PROCESSING",
+      "deposit_instructions": {
+        "account_number": "1234567890",
+        "ifsc": "1234567890",
+        "account_name": "Sandbox Technologies Pvt Ltd",
+        "deep_link": "upi://pay?pa=testing-payin@ybl&am=1000",
+        "ios_checkout_link": "https://pay.google.com/upi/deeplink?pa=testing-payin@ybl&am=1000"
+      },
+      "created_at": "2026-09-30T10:00:00Z"
+    }
+  },
+  "/payout/quotation": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "59bf60c3-e9af-40a7-9d5c-2a1aa191e769",
+      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
+      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
+      "asset": "USDT",
+      "fiat": "INR",
+      "network": "tron",
+      "sending_amount": "60.00",
+      "rate": "85.00",
+      "receiving_amount": "5100.00",
+      "fees": {
+        "zapyd_fee": "0.00",
+        "client_fee": "0.00",
+        "client_gst": "0.00",
+        "tds": "0"
+      },
+      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
+      "created_at": "2026-09-30T10:00:00Z",
+      "expiry_time": "2026-09-30T10:10:00Z"
+    }
+  },
+  "/payout/initiate": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "quotation_id": "59bf60c3-e9af-40a7-9d5c-2a1aa191e769",
+      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
+      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
+      "asset": "USDT",
+      "network": "tron",
+      "fiat": "INR",
+      "rate": "85.00",
+      "sending_amount": "60.00",
+      "receiving_amount": "5100.00",
+      "client_reference_id": "payout-ref-001",
+      "fees": {
+        "zapyd_fee": "0.00",
+        "client_fee": "0.00",
+        "client_gst": "0.00",
+        "tds": "0"
+      },
+      "status": "PROCESSING",
+      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
+      "transaction_hash": "0x9f2c\u2026",
+      "created_at": "2026-09-30T10:00:00Z"
+    }
+  },
+  "/customer/create": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "client_reference_id": "test123",
+      "full_name": "John Doe",
+      "email": "john@example.com",
+      "phone": "+919911002211",
+      "country": "IND",
+      "type": "INDIVIDUAL",
+      "status": "UNVERIFIED",
+      "failure_reason": null,
+      "document_type": "AADHAAR"
+    }
+  },
+  "/customer/payout/create": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "client_reference_id": "test123",
+      "full_name": "John Doe",
+      "email": "john.doe@example.com",
+      "phone": "+1234567890",
+      "country": "USA",
+      "type": "INDIVIDUAL",
+      "status": "UNVERIFIED",
+      "failure_reason": null,
+      "document_type": "AADHAAR"
+    }
+  },
+  "/kyc/mock-kyc-status": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "VERIFIED",
+      "failure_reason": null
+    }
+  }
+}

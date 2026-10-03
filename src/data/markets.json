@@ -1,0 +1,662 @@
+{
+ "markets": [
+  {
+   "fiat": "BRL",
+   "currency": "Brazilian Real",
+   "country": "Brazil",
+   "flag": "🇧🇷",
+   "alpha3": "BRA",
+   "guide": "/guides/country-guides/brazil/overview",
+   "address": [
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Maria Silva",
+    "address": {
+     "street": "Av. Paulista 1000",
+     "city": "São Paulo",
+     "state_province": "SP",
+     "postal_code": "01310-100"
+    },
+    "beneficiary": {},
+    "ids": {
+     "br_cpf": "12345678909"
+    }
+   },
+   "rails": [
+    {
+     "method": "PIX",
+     "identifiers": [
+      "br_cpf"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "CNY",
+   "currency": "Chinese Yuan",
+   "country": "China",
+   "flag": "🇨🇳",
+   "alpha3": "CHN",
+   "guide": "/guides/country-guides/china/overview",
+   "address": [
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Li Wei",
+    "address": {
+     "street": "1 Fuxingmen Inner Street",
+     "city": "Beijing",
+     "state_province": "Beijing",
+     "postal_code": "100818"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "Li Wei",
+     "bank_name": "Bank of China",
+     "account_number": "6217850000001234567",
+     "swift_code": "BKCHCNBJ"
+    }
+   },
+   "rails": [
+    {
+     "method": "WIRE",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "swift_code"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "COP",
+   "currency": "Colombian Peso",
+   "country": "Colombia",
+   "flag": "🇨🇴",
+   "alpha3": "COL",
+   "guide": "/guides/country-guides/colombia/overview",
+   "address": [
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Carlos Gómez",
+    "address": {
+     "street": "Carrera 7 # 71-21",
+     "city": "Bogotá",
+     "state_province": "Cundinamarca",
+     "postal_code": "110231"
+    },
+    "beneficiary": {
+     "beneficiary_id_doc_number": "1023456789",
+     "beneficiary_phone_number": "3001234567"
+    },
+    "ids": {
+     "bank_name": "Bancolombia",
+     "account_number": "12345678901",
+     "account_type": "SAVINGS"
+    }
+   },
+   "rails": [
+    {
+     "method": "BANK-TRANSFER",
+     "identifiers": [
+      "bank_name",
+      "account_number",
+      "account_type"
+     ],
+     "beneficiary": [
+      "beneficiary_id_doc_number",
+      "beneficiary_phone_number"
+     ]
+    },
+    {
+     "method": "NEQUI",
+     "identifiers": [
+      "phone_number"
+     ],
+     "beneficiary": [
+      "beneficiary_id_doc_number"
+     ]
+    }
+   ]
+  },
+  {
+   "fiat": "EUR",
+   "currency": "Euro",
+   "country": "Eurozone (SEPA)",
+   "flag": "🇪🇺",
+   "alpha3": "DEU",
+   "guide": "/guides/country-guides/eurozone/overview",
+   "address": [
+    "street",
+    "city",
+    "postal_code"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Anna Müller",
+    "address": {
+     "street": "Unter den Linden 1",
+     "city": "Berlin",
+     "postal_code": "10117"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "Anna Müller",
+     "account_number": "DE89370400440532013000",
+     "swift_code": "COBADEFFXXX"
+    }
+   },
+   "rails": [
+    {
+     "method": "SEPA",
+     "identifiers": [
+      "account_holder_name",
+      "account_number",
+      "swift_code"
+     ],
+     "beneficiary": []
+    },
+    {
+     "method": "WIRE",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "swift_code"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "HKD",
+   "currency": "Hong Kong Dollar",
+   "country": "Hong Kong",
+   "flag": "🇭🇰",
+   "alpha3": "HKG",
+   "guide": "/guides/country-guides/hong-kong/overview",
+   "address": [
+    "street",
+    "city"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Chan Tai Man",
+    "address": {
+     "street": "1 Queen's Road Central",
+     "city": "Hong Kong"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "Chan Tai Man",
+     "bank_name": "HSBC Hong Kong",
+     "account_number": "123456789001",
+     "swift_code": "HSBCHKHH",
+     "bank_code": "004"
+    }
+   },
+   "rails": [
+    {
+     "method": "CHATS",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "swift_code",
+      "bank_code"
+     ],
+     "beneficiary": []
+    },
+    {
+     "method": "WIRE",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "swift_code"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "INR",
+   "currency": "Indian Rupee",
+   "country": "India",
+   "flag": "🇮🇳",
+   "alpha3": "IND",
+   "guide": "/guides/country-guides/india/overview",
+   "address": [],
+   "payin": {
+    "methods": [
+     "IMPS",
+     "UPI"
+    ],
+    "reference": "required",
+    "kyc": [
+     "sharing",
+     "sdk"
+    ],
+    "customer": {
+     "client_reference_id": "user-001",
+     "full_name": "Priya Sharma",
+     "phone": "9911002211",
+     "alpha_3_country_code": "IND"
+    }
+   },
+   "onboarding": "standard",
+   "rails": [
+    {
+     "method": "ACCOUNT_DETAILS",
+     "payment_method": "IMPS",
+     "identifiers": {
+      "account_number": "7627389201",
+      "ifsc": "SBIN0001829"
+     }
+    },
+    {
+     "method": "UPI",
+     "payment_method": "UPI",
+     "identifiers": {
+      "vpa": "priya@oksbi"
+     }
+    }
+   ]
+  },
+  {
+   "fiat": "MXN",
+   "currency": "Mexican Peso",
+   "country": "Mexico",
+   "flag": "🇲🇽",
+   "alpha3": "MEX",
+   "guide": "/guides/country-guides/mexico/overview",
+   "address": [
+    "street"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "José Hernández",
+    "address": {
+     "street": "Paseo de la Reforma 505"
+    },
+    "beneficiary": {
+     "beneficiary_id_doc_number": "HEGJ900115HDFRNS09",
+     "beneficiary_dob": "1990-01-15"
+    },
+    "ids": {
+     "mx_clabe": "002010077777777771"
+    }
+   },
+   "rails": [
+    {
+     "method": "SPEI",
+     "identifiers": [
+      "mx_clabe"
+     ],
+     "beneficiary": [
+      "beneficiary_id_doc_number",
+      "beneficiary_dob"
+     ]
+    }
+   ]
+  },
+  {
+   "fiat": "NGN",
+   "currency": "Nigerian Naira",
+   "country": "Nigeria",
+   "flag": "🇳🇬",
+   "alpha3": "NGA",
+   "guide": "/guides/country-guides/nigeria/overview",
+   "address": [
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Chinedu Okafor",
+    "address": {
+     "street": "12 Adeola Odeku Street",
+     "city": "Lagos",
+     "state_province": "Lagos",
+     "postal_code": "101241"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "Chinedu Okafor",
+     "bank_name": "Access Bank",
+     "account_number": "0123456789"
+    }
+   },
+   "rails": [
+    {
+     "method": "BANK-TRANSFER",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "PHP",
+   "currency": "Philippine Peso",
+   "country": "Philippines",
+   "flag": "🇵🇭",
+   "alpha3": "PHL",
+   "guide": "/guides/country-guides/philippines/overview",
+   "address": [
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Maria Santos",
+    "address": {
+     "street": "6750 Ayala Avenue",
+     "city": "Makati",
+     "state_province": "Metro Manila",
+     "postal_code": "1226"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "Maria Santos",
+     "bank_name": "BDO Unibank",
+     "account_number": "001234567890"
+    }
+   },
+   "rails": [
+    {
+     "method": "PESONET",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number"
+     ],
+     "beneficiary": []
+    },
+    {
+     "method": "INSTAPAY",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "SGD",
+   "currency": "Singapore Dollar",
+   "country": "Singapore",
+   "flag": "🇸🇬",
+   "alpha3": "SGP",
+   "guide": "/guides/country-guides/singapore/overview",
+   "address": [
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Tan Wei Ming",
+    "address": {
+     "street": "12 Marina Boulevard",
+     "city": "Singapore",
+     "state_province": "Singapore",
+     "postal_code": "018982"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "Tan Wei Ming",
+     "bank_name": "DBS Bank",
+     "account_number": "0123456789",
+     "swift_code": "DBSSSGSG"
+    }
+   },
+   "rails": [
+    {
+     "method": "BANK-TRANSFER",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "swift_code"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "AED",
+   "currency": "UAE Dirham",
+   "country": "United Arab Emirates",
+   "flag": "🇦🇪",
+   "alpha3": "ARE",
+   "guide": "/guides/country-guides/united-arab-emirates/overview",
+   "address": [
+    "street",
+    "city",
+    "state_province"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Ahmed Al Mansoori",
+    "address": {
+     "street": "Sheikh Zayed Road 101",
+     "city": "Dubai",
+     "state_province": "Dubai"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "Ahmed Al Mansoori",
+     "account_number": "AE070331234567890123456",
+     "swift_code": "EBILAEAD"
+    }
+   },
+   "rails": [
+    {
+     "method": "BANK-TRANSFER",
+     "identifiers": [
+      "account_holder_name",
+      "account_number",
+      "swift_code"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "GBP",
+   "currency": "Pound Sterling",
+   "country": "United Kingdom",
+   "flag": "🇬🇧",
+   "alpha3": "GBR",
+   "guide": "/guides/country-guides/united-kingdom/overview",
+   "address": [
+    "street",
+    "city"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Oliver Smith",
+    "address": {
+     "street": "10 Downing Street",
+     "city": "London"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "Oliver Smith",
+     "account_number": "31926819",
+     "sort_code": "200000"
+    }
+   },
+   "rails": [
+    {
+     "method": "BANK-TRANSFER",
+     "identifiers": [
+      "account_holder_name",
+      "account_number",
+      "sort_code"
+     ],
+     "beneficiary": []
+    }
+   ]
+  },
+  {
+   "fiat": "USD",
+   "currency": "US Dollar",
+   "country": "United States",
+   "flag": "🇺🇸",
+   "alpha3": "USA",
+   "guide": "/guides/country-guides/united-states/overview",
+   "address": [
+    "street"
+   ],
+   "payin": {
+    "methods": [
+     "WIRE",
+     "RTP",
+     "ACH_PULL"
+    ],
+    "reference": "optional",
+    "kyc": [
+     "sdk"
+    ],
+    "customer": {
+     "client_reference_id": "user-001",
+     "full_name": "Jane Doe",
+     "email": "jane@example.com",
+     "dob": "1990-01-15",
+     "alpha_3_country_code": "USA"
+    }
+   },
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "John Smith",
+    "address": {
+     "street": "350 Fifth Avenue"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "John Smith",
+     "bank_name": "Chase",
+     "account_number": "123456789012",
+     "routing_number": "021000021"
+    }
+   },
+   "rails": [
+    {
+     "method": "ACH_PUSH",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "routing_number"
+     ],
+     "beneficiary": []
+    },
+    {
+     "method": "RTP",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "routing_number"
+     ],
+     "beneficiary": []
+    },
+    {
+     "method": "DOMESTIC_WIRE",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "routing_number"
+     ],
+     "beneficiary": []
+    },
+    {
+     "method": "FEDWIRE",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "routing_number"
+     ],
+     "beneficiary": []
+    },
+    {
+     "method": "WIRE",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "swift_code"
+     ],
+     "beneficiary": []
+    }
+   ]
+  }
+ ],
+ "stablecoins": [
+  {
+   "code": "USDT",
+   "name": "Tether",
+   "networks": [
+    "tron",
+    "ethereum",
+    "polygon",
+    "arbitrum",
+    "solana",
+    "bsc"
+   ]
+  },
+  {
+   "code": "USDC",
+   "name": "USD Coin",
+   "networks": [
+    "ethereum",
+    "polygon",
+    "arbitrum",
+    "solana",
+    "bsc"
+   ]
+  }
+ ]
+}
