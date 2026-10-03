@@ -250,7 +250,7 @@
       },
       "deposit_instructions": {
         "account_number": "1234567890",
-        "ifsc": "1234567890",
+        "ifsc": "SBIN0000001",
         "account_name": "Sandbox Technologies Pvt Ltd",
         "deep_link": "upi://pay?pa=testing-payin@ybl&am=1000",
         "ios_checkout_link": "https://pay.google.com/upi/deeplink?pa=testing-payin@ybl&am=1000"
@@ -292,7 +292,7 @@
       "status": "PROCESSING",
       "deposit_instructions": {
         "account_number": "1234567890",
-        "ifsc": "1234567890",
+        "ifsc": "SBIN0000001",
         "account_name": "Sandbox Technologies Pvt Ltd",
         "deep_link": "upi://pay?pa=testing-payin@ybl&am=1000",
         "ios_checkout_link": "https://pay.google.com/upi/deeplink?pa=testing-payin@ybl&am=1000"
