@@ -894,7 +894,7 @@ export default function Demo() {
       case 'calc':
         return <Calc {...common} o={o} amount={amount} onAmount={setAmount} sources={sourcesFor(user.country)} onCommit={commit} user={user} />
       case 'preview':
-        return <Preview {...common} steps={route.steps} />
+        return <Preview {...common} />
     }
     return (
       <FlowScreen st={s} c={c} busy={busy} edits={editsFor(s)} onEdit={(k, v) => setEdits((e) => ({ ...e, [s.id]: { ...editsFor(s), [k]: v } }))} onRun={() => next()} hash={hash} />
@@ -1733,11 +1733,13 @@ function Sheet(p: { title: string; onClose: () => void; children: (close: () => 
   )
 }
 
-function Preview(p: ScreenProps & { steps: JStep[] }) {
+function Preview(p: ScreenProps) {
   const { o, amount } = p.c
   const kind = kindOf(o)
   const out = convert(Number(amount), o.src, o.dst)
   const net = NETWORKS[o.network] ?? o.network
+  const coinSide = coin(o.src) ? o.src : coin(o.dst) ? o.dst : null
+  const fiat = coinSide === o.src ? o.dst : o.src
   const legs: { icon: string; title: string; sub: string }[] = [
     { icon: market(o.src) ? `flag:${o.src}` : `coin:${o.src}`, title: money(amount, o.src), sub: market(o.src) ? `Paid ${methodText(o, 'src')}` : o.funding === 'prefunded' && market(o.dst) ? 'From your app\'s prefunded balance' : `Sent ${methodText(o, 'src')}` },
     ...(kind === 'remittance' ? [{ icon: `coin:${o.bridge}`, title: `${o.bridge} on ${net}`, sub: 'Converted in between' }] : []),
@@ -1757,12 +1759,19 @@ function Preview(p: ScreenProps & { steps: JStep[] }) {
         ))}
       </ol>
       <div className="kfield">
-        <span className="klabel">What happens next</span>
-        <div className="kchecks kchecks-flat">
-          {p.steps.map((s) => (
-            <Check key={s.id}>{s.title}</Check>
-          ))}
-        </div>
+        <span className="klabel">Order details</span>
+        <Rows
+          rows={[
+            ['Rate', coinSide ? `1 ${coinSide} = ${fmt(RATE[fiat] ?? 1)} ${fiat}` : `1 ${o.src} = ${fmt(convert(1, o.src, o.dst))} ${o.dst}`],
+            ['Fees', money(0, o.src)],
+            ['Total to pay', money(amount, o.src)],
+            ...(market(o.src) ? ([['Pay via', railName(o.payinMethod)]] as [string, string][]) : []),
+            ['Network', net],
+            ...(market(o.dst) ? ([['Paid out via', railName(o.rail)]] as [string, string][]) : []),
+            ...(market(o.dst) && o.funding === 'prefunded' ? ([['Funded from', 'Prefunded balance']] as [string, string][]) : []),
+            ['Arrives', market(o.dst) ? 'Same day, once the payout clears' : 'When the payin settles'],
+          ]}
+        />
       </div>
     </Frame>
   )
