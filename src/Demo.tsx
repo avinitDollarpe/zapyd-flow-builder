@@ -859,8 +859,6 @@ export default function Demo() {
 
   const phase = st?.phase ?? 'transfer'
   const phaseAt = PHASES.findIndex((p) => p.id === phase)
-  const inPhase = steps.filter((s) => s.phase === phase)
-  const fill = finished ? 1 : (inPhase.indexOf(st!) + 1) / inPhase.length
   // Going back is safe before anything is sent, and between calculator and review.
   const back = !busy && !finished && (i > 0 && i <= at('phone') ? i - 1 : st?.id === 'preview' ? calcAt : -1)
   const lastKey = log[log.length - 1]?.key
@@ -924,14 +922,7 @@ export default function Demo() {
                 <img className="klogo logo logo-light" src="/zapyd-light.svg" alt="Zapyd" />
                 <img className="klogo logo logo-dark" src="/zapyd-dark.svg" alt="Zapyd" />
               </span>
-              <span className="kcount">{finished ? '' : `${phaseAt + 1}/${PHASES.length}`}</span>
-            </div>
-            <div className="kprogress" aria-hidden="true">
-              {PHASES.map((p, n) => (
-                <i key={p.id}>
-                  <b style={{ width: `${(n < phaseAt || finished ? 1 : n === phaseAt ? fill : 0) * 100}%` }} />
-                </i>
-              ))}
+              <span />
             </div>
             {st?.hosted && <p className="khosted">Secure verification by Zapyd</p>}
             <div className="kviewport" key={i}>

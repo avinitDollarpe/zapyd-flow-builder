@@ -759,11 +759,6 @@ button.row:hover { background: var(--gray-50); }
 .klogo { height: 20px; width: auto; }
 .khosted { flex: none; margin: 8px 20px 0; font-size: 11px; line-height: 14px; color: var(--gray-500); text-align: center; }
 .kcount { justify-self: end; font-size: 12px; font-weight: 500; color: var(--gray-500); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.kprogress { flex: none; display: flex; gap: 4px; margin: 4px 20px 0; }
-.kprogress i { flex: 1; height: 3px; border-radius: 2px; background: var(--gray-200); transition: background-color 300ms var(--k-ease); }
-:root[data-theme='dark'] .kprogress i { background: var(--gray-300); }
-.kprogress i { overflow: hidden; }
-.kprogress b { display: block; height: 100%; border-radius: inherit; background: var(--k-accent); transition: width 300ms var(--k-ease); }
 
 /* Screens enter from the right, as in the KYC demo. */
 .kviewport { position: relative; flex: 1; min-height: 0; }
