@@ -1434,30 +1434,59 @@ function KycCheck(p: ScreenProps & { doc: string }) {
   )
 }
 
+// Camera on top, edge to edge; the guide ring fills as the scan runs, then
+// turns green with a check before the screen moves on.
 function KycSelfie(p: ScreenProps) {
-  const [scan, setScan] = useState(false)
+  const [phase, setPhase] = useState<'idle' | 'scanning' | 'done'>('idle')
   useEffect(() => {
-    if (!scan) return
-    const t = setTimeout(() => p.onNext(), 1600)
+    if (phase === 'idle') return
+    const t = setTimeout(() => (phase === 'scanning' ? setPhase('done') : p.onNext()), phase === 'scanning' ? 1800 : 900)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scan])
+  }, [phase])
+  const text = { idle: 'Position your face in the frame', scanning: 'Hold still', done: 'Looks good' }[phase]
   return (
-    <Frame title="Selfie verification" sub="Fit your face inside the oval and hold still." cta={scan ? 'Scanning…' : 'Take selfie'} ok busy={scan} onNext={() => setScan(true)}>
-      <div className={`kcamera${scan ? ' scanning' : ''}`}>
-        <div className="koval">
-          <svg className="kface" width="120" height="150" viewBox="0 0 120 150" fill="currentColor" aria-hidden="true">
-            <ellipse cx="60" cy="58" rx="28" ry="34" />
-            <path d="M6 150c4-34 26-52 54-52s50 18 54 52z" />
-          </svg>
-          <span className="kscanline" />
+    <form
+      className="kscreen"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (phase === 'idle') setPhase('scanning')
+      }}
+    >
+      <div className="kbody kbody-cam">
+        <div className={`kcam ${phase}`} role="img" aria-label="Camera preview">
+          <div className="kcam-stage">
+            <svg className="kcam-ring" width="156" height="196" viewBox="0 0 156 196" fill="none" aria-hidden="true">
+              <ellipse cx="78" cy="98" rx="74" ry="94" className="kring-track" />
+              <path d="M78 4 A74 94 0 1 1 77.99 4" className="kring-fill" pathLength={100} />
+            </svg>
+            <div className="koval">
+              <svg className="kface" width="120" height="150" viewBox="0 0 120 150" fill="currentColor" aria-hidden="true">
+                <ellipse cx="60" cy="58" rx="28" ry="34" />
+                <path d="M6 150c4-34 26-52 54-52s50 18 54 52z" />
+              </svg>
+            </div>
+            <span className="kcam-ok" aria-hidden="true">
+              <Icon name="check" size={18} />
+            </span>
+          </div>
+          <span className="kcam-pill">
+            <span className="krec" />
+            {text}
+          </span>
         </div>
-        <span className="kcam-pill">
-          <span className="krec" />
-          {scan ? 'Keep still. Scanning…' : 'Camera ready'}
-        </span>
+        <div className="khead">
+          <p className="ktitle">Take a selfie</p>
+          <p className="ksub">Good light, no glasses or hat, so it matches your document.</p>
+        </div>
       </div>
-    </Frame>
+      <div className="kfoot">
+        <button className={`kbtn ${phase === 'idle' ? 'is-on' : 'is-off'}`} type="submit" disabled={phase !== 'idle'} aria-busy={phase === 'scanning'}>
+          {phase === 'scanning' && <Spinner />}
+          {phase === 'idle' ? 'Take selfie' : phase === 'scanning' ? 'Scanning…' : 'Verified'}
+        </button>
+      </div>
+    </form>
   )
 }
 

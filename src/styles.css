@@ -1016,16 +1016,29 @@ button.row:hover { background: var(--gray-50); }
 .kbtn-2 svg { color: var(--k-accent); }
 .kbtn:disabled { cursor: default; }
 
-/* selfie (kycd-camera) */
-.kcamera { position: relative; flex: 1; min-height: 240px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 20px; background: radial-gradient(120% 80% at 50% 35%, #2a2d34 0%, #111215 70%); color: #fff; }
-.koval { position: relative; width: 136px; height: 176px; overflow: hidden; border-radius: 50%; box-shadow: 0 0 0 2px var(--blue-300), 0 0 0 999px rgb(0 0 0 / 0.35); }
+/* selfie: the camera runs edge to edge under the app bar; copy sits below it */
+.kbody-cam { gap: 20px; padding-top: 0; }
+.kcam { position: relative; flex: none; display: flex; align-items: center; justify-content: center; height: 276px; margin: 0 -20px; background: radial-gradient(120% 80% at 50% 35%, #2a2d34 0%, #111215 70%); color: #fff; }
+/* Concentric with the 40px display: the camera meets the app bar, so only the bottom corners round */
+.kcam { border-radius: 0 0 24px 24px; overflow: hidden; }
+.kcam-stage { position: relative; width: 156px; height: 196px; display: grid; place-items: center; }
+.koval { position: relative; width: 136px; height: 176px; overflow: hidden; border-radius: 50%; box-shadow: 0 0 0 999px rgb(0 0 0 / 0.4); }
 .kface { position: absolute; left: 50%; bottom: -6px; translate: -50% 0; color: rgb(255 255 255 / 0.3); }
-.kscanline { position: absolute; left: 0; right: 0; top: 0; height: 40px; background: linear-gradient(to bottom, transparent, rgb(78 123 255 / 0.45)); border-bottom: 2px solid var(--blue-300); opacity: 0; transition: opacity 200ms; }
-.kcamera.scanning .kscanline { opacity: 1; animation: k-scan 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; }
-@keyframes k-scan { from { translate: 0 -40px; } to { translate: 0 176px; } }
-.kcam-pill { position: absolute; left: 50%; bottom: 14px; translate: -50% 0; display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 999px; background: rgb(0 0 0 / 0.55); backdrop-filter: blur(8px); font-size: 12px; font-weight: 500; white-space: nowrap; }
-.krec { width: 6px; height: 6px; border-radius: 50%; background: #3ccb83; }
-.kcamera.scanning .krec { background: #ff5a4f; animation: k-blink 1.2s step-end infinite; }
+/* The guide ring: a faint track, and a fill that draws around it while scanning */
+.kcam-ring { position: absolute; inset: 0; z-index: 1; }
+.kring-track { stroke: rgb(255 255 255 / 0.25); stroke-width: 2; }
+.kring-fill { stroke: var(--blue-300); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke 300ms; }
+.kcam.scanning .kring-fill { animation: k-ring 1.8s linear forwards; }
+.kcam.done .kring-fill { stroke-dashoffset: 0; stroke: #3ccb83; }
+@keyframes k-ring { to { stroke-dashoffset: 0; } }
+/* Done: the oval dims and a check pops in (scale 0.25, blur 4px) */
+.kcam-ok { position: absolute; z-index: 2; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #3ccb83; color: #0a0a0a; opacity: 0; scale: 0.25; filter: blur(4px); transition-property: opacity, scale, filter; transition-duration: 300ms; transition-timing-function: var(--k-ease); }
+.kcam.done .kcam-ok { opacity: 1; scale: 1; filter: blur(0); }
+.kcam .koval { transition: opacity 300ms var(--k-ease); }
+.kcam.done .koval { opacity: 0.4; }
+.kcam-pill { position: absolute; left: 50%; bottom: 16px; translate: -50% 0; display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 999px; background: rgb(0 0 0 / 0.55); backdrop-filter: blur(8px); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.krec { width: 6px; height: 6px; border-radius: 50%; background: #3ccb83; transition: background-color 150ms; }
+.kcam.scanning .krec { background: #ff5a4f; animation: k-blink 1.2s step-end infinite; }
 
 /* calculator */
 .kcalc { display: flex; flex-direction: column; }
@@ -1095,7 +1108,7 @@ button.row:hover { background: var(--gray-50); }
 
 @media (prefers-reduced-motion: reduce) {
   .ksheet, .ksheet-wrap, .ksheet-wrap.leaving, .ksheet-wrap.leaving .ksheet { animation-duration: 1ms; }
-  .kcamera.scanning .kscanline, .kotp:focus-within .kotp-cell.at::after { animation: none; }
+  .kcam.scanning .krec, .kotp:focus-within .kotp-cell.at::after { animation: none; }
 }
 .profile-clip { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ksheet-note { margin: 0 4px 8px; padding: 8px 10px; border-radius: 10px; background: var(--gray-50); color: var(--gray-600); font-size: 12px; line-height: 17px; text-wrap: pretty; }
