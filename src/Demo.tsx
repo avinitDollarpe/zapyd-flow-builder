@@ -110,6 +110,8 @@ interface JStep extends Step {
   ui?: Ui
   // Runs inside Zapyd's hosted KYC page rather than your app.
   hosted?: boolean
+  // Calls with nothing for the user to see, sent right after this step's call.
+  also?: Step[]
 }
 
 const app = (id: string, ui: Ui, phase: Phase, title: string, text: string, extra: Partial<JStep> = {}): JStep => ({ n: 0, id, ui, phase, kind: 'info', title, text, ...extra })
@@ -233,14 +235,31 @@ function transfer(o: Opts, u: User): { flow?: Flow; steps: JStep[] } {
     return JSON.parse(self && ben ? s.replaceAll(`"${ben}"`, `"${ID.payer}"`) : s)
   }
   const init = f.steps.find((s) => s.id === 'payin-initiate')
-  const steps = f.steps
-    .filter((s) => !s.id.startsWith('payer-') && !(self && s.id.startsWith('ben-')) && s.id !== 'payin-initiate')
-    .map((s): JStep => {
-      // The pay screen's "I've paid" sends the initiate call, so the two are one step.
-      if (s.id === 'payin-pay' && init)
-        return { ...init, id: 'payin-pay', phase: 'transfer', title: s.title, text: `${s.text} "I've paid" then calls initiate: ${init.text}`, body: swap(init.body) }
-      return { ...s, phase: 'transfer', body: s.body && swap(s.body) }
-    })
+  const send = f.steps.find((s) => s.id === 'payout-send')
+  const out = f.steps.find((s) => s.id === 'payout-initiate')
+  const steps: JStep[] = []
+  for (const s of f.steps) {
+    if (s.id.startsWith('payer-') || (self && s.id.startsWith('ben-')) || s.id === 'payin-initiate') continue
+    if (s.id === 'payout-initiate' && send) continue
+    // The pay and send screens' buttons send the initiate call, so each pair is one step.
+    if (s.id === 'payin-pay' && init) {
+      steps.push({ ...init, id: 'payin-pay', phase: 'transfer', title: s.title, text: `${s.text} "I've paid" then calls initiate: ${init.text}`, body: swap(init.body) })
+      continue
+    }
+    if (s.id === 'payout-send' && out) {
+      steps.push({ ...out, id: 'payout-send', phase: 'transfer', title: s.title, text: `${s.text} Once it's sent, your backend calls initiate: ${out.text}`, body: swap(out.body) })
+      continue
+    }
+    const st: JStep = { ...s, phase: 'transfer', body: s.body && swap(s.body) }
+    // A call with no screen of its own (the balance check, a KYC call with
+    // nothing to type) runs right after the step before it.
+    const prev = steps[steps.length - 1]
+    const silent = s.kind === 'api' && (s.id === 'payout-balance' || (s.id === 'ben-kyc' && !fields((st.body ?? {}) as Json).length))
+    if (prev && silent) {
+      prev.also = [...(prev.also ?? []), st]
+      prev.text += ` Then calls \`${s.path!.replace(/^\/\w+\/api\/v1/, '')}\`: ${s.text}`
+    } else steps.push(st)
+  }
   return { flow: f, steps }
 }
 
@@ -420,7 +439,8 @@ const HOOKS: Record<string, { type: string; event: string; from: string }> = {
 
 function webhook(st: Step, c: Ctx): Json {
   const h = HOOKS[st.id]
-  const src = c.data[h.from] ?? {}
+  // Per-order payouts initiate from the send screen.
+  const src = c.data[h.from] ?? (h.from === 'payout-initiate' ? c.data['payout-send'] : undefined) ?? {}
   const metadata =
     h.type === 'PAYIN'
       ? { ...(src.transaction_reference_id ? { transaction_reference_id: src.transaction_reference_id } : {}), transaction_hash: txHash(c.o.network) }
@@ -736,7 +756,8 @@ export default function Demo() {
   const asset = coin(o.src) ? o.src : coin(o.dst) ? o.dst : o.bridge
   const c: Ctx = { o, flow: flow ?? ({ steps: [] } as unknown as Flow), asset, data, user, amount }
   const st = steps[i] as JStep | undefined
-  const finished = i >= steps.length
+  // The last webhook landing ends the run: no second success screen.
+  const finished = i >= steps.length || (i === steps.length - 1 && st?.kind === 'event' && !!data[st.id])
   const at = (id: string) => steps.findIndex((s) => s.id === id)
   const calcAt = at('calc')
   const locked = i > at('preview') // the route can't change once the transfer starts
@@ -803,13 +824,21 @@ export default function Demo() {
       const run = epoch.current
       if (st.ui === 'phone-otp') note(st, `Phone ${user.country.dial} ${user.phone} verified by your app.`)
       if (st.id === 'payin-pay') note(st, `User paid ${money(data['payin-quote']?.sending_amount, o.src)} via ${railName(o.payinMethod)}. Not an API call.`)
+      let body = request(st, editsFor(st), hash)
+      if (st.id === 'payout-send') {
+        const h = txHash(o.network)
+        setHash(h)
+        note(st, `Sent ${money(data['payout-quote']?.sending_amount, asset)} on ${NETWORKS[o.network]} · ${h.slice(0, 10)}…`)
+        body = request(st, editsFor(st), h)
+      }
       if (st.ui === 'kyc-start' && alt && fullKyc(user.country)) {
         // Sandbox: set the result instead of running the hosted flow.
         if (!(await call(MOCK_KYC, { customer_id: ID.payer, kyc_status: 'VERIFIED' }))) return
         setBusy(false)
         return setI(at('payer-verified'))
       }
-      if (!(await call(st))) return
+      if (!(await call(st, body))) return
+      for (const a of st.also ?? []) if (!(await call(a))) return
       if (st.ui === 'kyc-start' && alt) {
         // Payout-only: fill the address with the market's sample.
         const addr = steps[at('payer-address')]
@@ -822,11 +851,7 @@ export default function Demo() {
       return setI(i + 1)
     }
     // No Zapyd call: your app's own screens, the hosted KYC pages and user actions.
-    if (st.id === 'payout-send') {
-      const h = txHash(o.network)
-      setHash(h)
-      note(st, `Sent ${money(data['payout-quote']?.sending_amount, asset)} on ${NETWORKS[o.network]} · ${h.slice(0, 10)}…`)
-    } else if (st.id === 'payin-link') note(st, 'User linked their bank account on the hosted page. Not an API call.')
+    if (st.id === 'payin-link') note(st, 'User linked their bank account on the hosted page. Not an API call.')
     else if (st.id === 'signup') note(st, `${user.name} · ${user.email}. Kept by your app for now.`)
     else if (st.id === 'email-otp') note(st, 'Email verified by your app. Not a Zapyd call.')
     else if (st.hosted) note(st, `Hosted KYC · ${st.title} done, inside Zapyd's flow.`)
@@ -1018,7 +1043,7 @@ export default function Demo() {
                   {st.kind === 'api' ? 'API call' : st.kind === 'event' ? 'Webhook' : st.hosted ? 'Hosted KYC' : st.kind === 'action' ? 'User action' : 'Your app'}
                 </span>
                 <span className="cfg-count">
-                  {PHASES[phaseAt].title} · {i + 1}/{steps.length}
+                  {PHASES[phaseAt].title} · {steps.slice(0, i + 1).filter((s) => s.phase === phase).length}/{steps.filter((s) => s.phase === phase).length}
                 </span>
               </p>
               <p className="now-title">{st.title}</p>
@@ -1221,7 +1246,15 @@ function Otp(p: ScreenProps & { title: string; to: string }) {
       busy={p.busy}
       onNext={() => p.onNext()}
       extra={
-        <button type="button" className="kghost" onClick={() => setCode('123456')}>
+        <button
+          type="button"
+          className="kghost"
+          disabled={p.busy}
+          onClick={() => {
+            setCode('123456')
+            p.onNext()
+          }}
+        >
           Use sandbox code 123456
         </button>
       }
