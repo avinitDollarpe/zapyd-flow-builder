@@ -920,17 +920,10 @@ export default function Demo() {
               ) : (
                 <span />
               )}
-              {st?.hosted ? (
-                <span className="kbrand">
-                  <img className="klogo logo logo-light" src="/zapyd-light.svg" alt="Zapyd" />
-                  <img className="klogo logo logo-dark" src="/zapyd-dark.svg" alt="Zapyd" />
-                </span>
-              ) : (
-                <span className="kbrand kbrand-app">
-                  <span className="app-logo" aria-hidden="true" />
-                  Your app
-                </span>
-              )}
+              <span className="kbrand">
+                <img className="klogo logo logo-light" src="/zapyd-light.svg" alt="Zapyd" />
+                <img className="klogo logo logo-dark" src="/zapyd-dark.svg" alt="Zapyd" />
+              </span>
               <span className="kcount">{finished ? '' : `${phaseAt + 1}/${PHASES.length}`}</span>
             </div>
             <div className="kprogress" aria-hidden="true">

@@ -755,7 +755,6 @@ button.row:hover { background: var(--gray-50); }
 .kback { width: 32px; height: 32px; margin-left: -8px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: var(--gray-700); transition-property: background-color, scale; transition-duration: 150ms; }
 .kback:hover { background: var(--gray-100); }
 .kback:active { scale: 0.96; }
-.app-logo { flex: none; width: 18px; height: 18px; border-radius: 6px; background: linear-gradient(135deg, var(--blue-500), var(--blue-300)); }
 .kbrand { justify-self: center; display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; }
 .klogo { height: 20px; width: auto; }
 .khosted { flex: none; margin: 8px 20px 0; font-size: 11px; line-height: 14px; color: var(--gray-500); text-align: center; }
