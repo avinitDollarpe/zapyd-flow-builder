@@ -232,9 +232,15 @@ function transfer(o: Opts, u: User): { flow?: Flow; steps: JStep[] } {
     const s = JSON.stringify(body)
     return JSON.parse(self && ben ? s.replaceAll(`"${ben}"`, `"${ID.payer}"`) : s)
   }
+  const init = f.steps.find((s) => s.id === 'payin-initiate')
   const steps = f.steps
-    .filter((s) => !s.id.startsWith('payer-') && !(self && s.id.startsWith('ben-')))
-    .map((s): JStep => ({ ...s, phase: 'transfer', body: s.body && swap(s.body) }))
+    .filter((s) => !s.id.startsWith('payer-') && !(self && s.id.startsWith('ben-')) && s.id !== 'payin-initiate')
+    .map((s): JStep => {
+      // The pay screen's "I've paid" sends the initiate call, so the two are one step.
+      if (s.id === 'payin-pay' && init)
+        return { ...init, id: 'payin-pay', phase: 'transfer', title: s.title, text: `${s.text} "I've paid" then calls initiate: ${init.text}`, body: swap(init.body) }
+      return { ...s, phase: 'transfer', body: s.body && swap(s.body) }
+    })
   return { flow: f, steps }
 }
 
@@ -408,7 +414,7 @@ function respond(st: Step, body: Json = {}, c: Ctx): Json {
 const HOOKS: Record<string, { type: string; event: string; from: string }> = {
   'payer-verified': { type: 'CUSTOMER', event: 'VERIFIED', from: 'payer-create' },
   'bank-verified': { type: 'BANK', event: 'VERIFIED', from: 'bank-create' },
-  'payin-success': { type: 'PAYIN', event: 'SUCCESS', from: 'payin-initiate' },
+  'payin-success': { type: 'PAYIN', event: 'SUCCESS', from: 'payin-pay' },
   'payout-success': { type: 'PAYOUT', event: 'SUCCESS', from: 'payout-initiate' },
 }
 
@@ -457,9 +463,11 @@ function copy(st: Step, c: Ctx): Copy {
     case 'payin-quote':
       return { title: 'Lock the rate', sub: `${money(c.amount, o.src)} via ${railName(o.payinMethod)}, as you chose. The quote holds the rate for 10 minutes.`, cta: 'Get a quote' }
     case 'payin-pay':
-      return { title: `Pay ${money(pq?.sending_amount, o.src)}`, sub: 'Send exactly this amount, from a bank account in your name, before the quote expires.', cta: "I've paid" }
-    case 'payin-initiate':
-      return { title: 'Confirm your payment', sub: sm?.payin?.reference === 'required' ? 'Enter the 12-digit UTR your bank gave you.' : undefined, cta: 'Confirm payment' }
+      return {
+        title: `Pay ${money(pq?.sending_amount, o.src)}`,
+        sub: `Send exactly this amount, from a bank account in your name, before ${pq ? new Date(pq.expiry_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'the quote expires'}.${sm?.payin?.reference === 'required' ? ' Then enter the 12-digit UTR your bank gave you.' : ''}`,
+        cta: "I've paid",
+      }
     case 'payin-success':
       return { title: 'Waiting for your payment', done: dm ? 'Payment received' : `${money(pq?.receiving_amount, asset)} delivered`, cta: dm ? 'Continue' : 'Finish' }
     case 'ben-create':
@@ -794,6 +802,7 @@ export default function Demo() {
       setBusy(true)
       const run = epoch.current
       if (st.ui === 'phone-otp') note(st, `Phone ${user.country.dial} ${user.phone} verified by your app.`)
+      if (st.id === 'payin-pay') note(st, `User paid ${money(data['payin-quote']?.sending_amount, o.src)} via ${railName(o.payinMethod)}. Not an API call.`)
       if (st.ui === 'kyc-start' && alt && fullKyc(user.country)) {
         // Sandbox: set the result instead of running the hosted flow.
         if (!(await call(MOCK_KYC, { customer_id: ID.payer, kyc_status: 'VERIFIED' }))) return
@@ -817,8 +826,7 @@ export default function Demo() {
       const h = txHash(o.network)
       setHash(h)
       note(st, `Sent ${money(data['payout-quote']?.sending_amount, asset)} on ${NETWORKS[o.network]} · ${h.slice(0, 10)}…`)
-    } else if (st.id === 'payin-pay') note(st, `User paid ${money(data['payin-quote']?.sending_amount, o.src)} via ${railName(o.payinMethod)}. Not an API call.`)
-    else if (st.id === 'payin-link') note(st, 'User linked their bank account on the hosted page. Not an API call.')
+    } else if (st.id === 'payin-link') note(st, 'User linked their bank account on the hosted page. Not an API call.')
     else if (st.id === 'signup') note(st, `${user.name} · ${user.email}. Kept by your app for now.`)
     else if (st.id === 'email-otp') note(st, 'Email verified by your app. Not a Zapyd call.')
     else if (st.hosted) note(st, `Hosted KYC · ${st.title} done, inside Zapyd's flow.`)
@@ -1867,6 +1875,16 @@ function FlowScreen(p: { st: Step; c: Ctx; busy: boolean; edits: Record<string, 
   })()
   const off = p.busy || waiting
   const [bodyRef, scrolls] = useScrolls<HTMLDivElement>()
+  // Editable request fields. On the pay screen they follow the deposit instructions (the UTR comes after paying).
+  const fieldsEl = rest.map(([k, v]) => (
+    <label key={k} className="kfield">
+      <span className="klabel">{label(k)}</span>
+      <span className={`kinput${v.trim() ? ' filled' : ''}`}>
+        <input value={v} onChange={(e) => p.onEdit(k, e.target.value)} required={k === 'transaction_reference_id' || undefined} />
+        <Ok />
+      </span>
+    </label>
+  ))
 
   return (
     <form
@@ -1940,31 +1958,22 @@ function FlowScreen(p: { st: Step; c: Ctx; busy: boolean; edits: Record<string, 
             </div>
           )}
 
-          {rest.map(([k, v]) => (
-            <label key={k} className="kfield">
-              <span className="klabel">{label(k)}</span>
-              <span className={`kinput${v.trim() ? ' filled' : ''}`}>
-                <input value={v} onChange={(e) => p.onEdit(k, e.target.value)} required={k === 'transaction_reference_id' || undefined} />
-                <Ok />
-              </span>
-            </label>
-          ))}
+          {st.id !== 'payin-pay' && fieldsEl}
 
           {st.id === 'payin-pay' && payinQ && (
             <>
               {payinQ.deposit_instructions?.deep_link && (
                 <QrCard value={payinQ.deposit_instructions.deep_link} label="Pay with any UPI app" hint="Scan, or open the link on this phone" />
               )}
-              <QuoteSummary q={payinQ} payin />
               {payinQ.deposit_instructions && (
                 <div className="kfield">
                   <span className="klabel">{c.o.payinMethod === 'UPI' ? 'Or pay to' : 'Transfer to'}</span>
                   <Rows rows={Object.entries(payinQ.deposit_instructions as Json).filter(([k]) => k !== 'ios_checkout_link' && k !== 'deep_link').map(([k, v]) => [label(k), String(v)])} />
                 </div>
               )}
+              {fieldsEl}
             </>
           )}
-          {st.id === 'payin-initiate' && <QuoteSummary q={payinQ} payin />}
           {(st.id === 'payout-balance' || st.id === 'payout-initiate') && <QuoteSummary q={payoutQ} payin={false} />}
           {st.id === 'payout-initiate' && c.data['payout-balance'] && (
             <Rows rows={[['Available balance', money(c.data['payout-balance'].available_balance[c.asset], c.asset)]]} />
