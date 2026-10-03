@@ -77,7 +77,7 @@ interface User {
   country: Country
   phone: string
 }
-const NEW_USER: User = { name: 'Alex Morgan', email: 'alex@example.com', country: COUNTRIES[0], phone: COUNTRIES[0].sample }
+const NEW_USER: User = { name: 'Chakravarti Avinit', email: 'avinit@zapyd.com', country: COUNTRIES[0], phone: COUNTRIES[0].sample }
 
 // Countries whose currency has payins get full KYC through the hosted flow;
 // the rest use payout-only onboarding (an address, no documents).
