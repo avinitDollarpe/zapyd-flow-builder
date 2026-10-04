@@ -12,7 +12,7 @@ const EMBED = params.has('embed')
 // that makes each one worth a shortcut.
 const POPULAR: { o: Partial<Opts> & { src: string; dst: string }; note: string }[] = [
   { o: { src: 'INR', dst: 'USDC', network: 'polygon', payinMethod: 'UPI' }, note: 'UPI' },
-  { o: { src: 'USD', dst: 'USDC', network: 'polygon', payinMethod: 'WIRE' }, note: 'Wire' },
+  { o: { src: 'USD', dst: 'USDC', network: 'polygon', payinMethod: 'ACH_PULL' }, note: 'ACH' },
   { o: { src: 'USDC', dst: 'INR', network: 'polygon', rail: 'ACCOUNT_DETAILS' }, note: 'IMPS' },
   { o: { src: 'USDC', dst: 'MXN', network: 'solana' }, note: 'SPEI' },
   { o: { src: 'USDC', dst: 'EUR', network: 'ethereum' }, note: 'SEPA' },

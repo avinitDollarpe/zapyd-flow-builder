@@ -391,5 +391,12 @@
       "status": "VERIFIED",
       "failure_reason": null
     }
+  },
+  "/bank/generate-link": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "widget_url": "https://link.example.com/session/7f3c2a9e"
+    }
   }
 }

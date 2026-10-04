@@ -325,6 +325,7 @@ export const ID = {
   beneficiary: '84737c7d-7b62-4204-80d6-80f6ecb3ceb4',
   rdaBeneficiary: '638d9a52-9427-460e-99ba-948d46ce349c',
   bank: 'cab47575-bbcb-4294-81a3-30774104f3b6',
+  linkedBank: '4e6f1b20-a73c-11ec-b909-0242ac120002',
   remitter: 'e14fa86f-2a5e-437a-a031-949c68ade933',
   payinQuote: 'da43453c-f854-42ac-9a1e-619b37060bbc',
   payoutQuote: '59bf60c3-e9af-40a7-9d5c-2a1aa191e769',
@@ -472,13 +473,15 @@ export function build(o: Opts): Flow | { unsupported: string } {
                 'landmark',
                 {
                   id: 'payin-link',
-                  kind: 'action',
-                  title: 'User links their bank account',
-                  text: '`ACH_PULL` debits the customer\'s own bank account. Redirect them to the hosted bank-connection page, where they sign in to their bank and choose the account; it then appears under `accounts` in `GET /cms/api/v1/bank/list/{customer_id}`. No endpoint returns that page\'s link yet, so use `WIRE` or `RTP` until one does.',
-                  docs: '/guides/country-guides/united-states/overview',
+                  kind: 'api',
+                  title: 'Link the bank account',
+                  text: '`ACH_PULL` debits the customer\'s own bank account. Open the returned `widget_url`: the customer signs in to their bank, picks the account and returns to `redirect_url`. No webhook is sent, so poll `GET /cms/api/v1/bank/list/{customer_id}` until the account under `accounts` is `VERIFIED`.',
+                  method: 'POST',
+                  path: '/cms/api/v1/bank/generate-link',
+                  body: { customer_id: ID.payer, redirect_url: 'https://yourapp.com/bank/return' },
+                  docs: '/api-reference-exchange/endpoint/bank/generate-link',
                 },
                 undefined,
-                'Hosted bank connection',
               ),
             ]
           : []),
@@ -489,7 +492,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
           title: 'Create a payin quotation',
           text:
             o.payinMethod === 'ACH_PULL'
-              ? 'Locks the rate. `ACH_PULL` debits the account linked in the previous step, so the response has no deposit instructions.'
+              ? 'Locks the rate. Send the linked account\'s `id` from the bank list as `bank_id`: `ACH_PULL` debits that account, so the response has no deposit instructions.'
               : `Locks the rate and returns \`deposit_instructions\` and \`expiry_time\`.${o.payinMethod === 'UPI' ? ' For UPI it also returns a `deep_link` you can show as a QR code.' : ''}`,
           method: 'POST',
           path: '/pis/api/v1/payin/quotation',
@@ -499,6 +502,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
             fiat: s.fiat,
             network: o.network,
             payment_method: o.payinMethod,
+            ...(o.payinMethod === 'ACH_PULL' ? { bank_id: ID.linkedBank } : {}),
             sending_amount: amount,
             risk_parameters: RISK,
           },

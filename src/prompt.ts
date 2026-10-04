@@ -12,6 +12,7 @@ const PLACEHOLDERS: Record<string, string> = {
   '84737c7d-7b62-4204-80d6-80f6ecb3ceb4': '<beneficiary customer_id>',
   '638d9a52-9427-460e-99ba-948d46ce349c': '<beneficiary customer_id>',
   'cab47575-bbcb-4294-81a3-30774104f3b6': '<bank_id>',
+  '4e6f1b20-a73c-11ec-b909-0242ac120002': '<id of the linked account from GET /cms/api/v1/bank/list/{customer_id}>',
   'e14fa86f-2a5e-437a-a031-949c68ade933': '<remitter_id>',
   'da43453c-f854-42ac-9a1e-619b37060bbc': '<payin quotation id>',
   '59bf60c3-e9af-40a7-9d5c-2a1aa191e769': '<payout quotation id>',
@@ -40,7 +41,7 @@ function sandbox(st: Step, flow: Flow): string | undefined {
     case 'bank-verified':
       return 'set it with `POST /cms/api/v1/bank/mock-bank-verification` `{"customer_id": "...", "bank_id": "...", "bank_status": "VERIFIED"}`. It sends no webhook: read the account with `GET /cms/api/v1/bank/{customer_id}/{bank_id}`.'
     case 'payin-link':
-      return 'not available yet either. Test US payins with `WIRE` or `RTP`.'
+      return 'the hosted page isn\'t available for test customers. Call `POST /cms/api/v1/bank/mock-bank-verification` `{"customer_id": "...", "bank_status": "VERIFIED"}` without `bank_id`: it creates a linked account that `GET /cms/api/v1/bank/list/{customer_id}` returns.'
     case 'payin-pay':
       return inr ? 'no real transfer. Any 12-digit `transaction_reference_id` works.' : 'no real transfer is needed.'
     case 'payin-success':

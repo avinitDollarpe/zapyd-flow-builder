@@ -87,7 +87,7 @@ const sourcesFor = (c: Country) => [...OFFERED_COINS, ...(fullKyc(c) ? [c.fiat] 
 
 function startOpts(c: Country): Opts {
   const o = fullKyc(c) ? { src: c.fiat, dst: 'USDC' } : { src: 'USDC', dst: c.fiat }
-  return normalize({ ...DEFAULTS, ...o, payinMethod: c.fiat === 'USD' ? 'WIRE' : '' })
+  return normalize({ ...DEFAULTS, ...o, payinMethod: c.fiat === 'USD' ? 'ACH_PULL' : '' })
 }
 const START_AMOUNT: Record<string, string> = { INR: '10000', USD: '1000' }
 const startAmount = (src: string) => START_AMOUNT[src] ?? '100'
@@ -243,7 +243,7 @@ function transfer(o: Opts, u: User): { flow?: Flow; steps: JStep[] } {
     if (s.id === 'payout-initiate' && send) continue
     // The pay and send screens' buttons send the initiate call, so each pair is one step.
     if (s.id === 'payin-pay' && init) {
-      steps.push({ ...init, id: 'payin-pay', phase: 'transfer', title: s.title, text: `${s.text} "I've paid" then calls initiate: ${init.text}`, body: swap(init.body) })
+      steps.push({ ...init, id: 'payin-pay', phase: 'transfer', title: s.title, text: `${s.text} The button then calls initiate: ${init.text}`, body: swap(init.body) })
       continue
     }
     if (s.id === 'payout-send' && out) {
@@ -410,7 +410,7 @@ function respond(st: Step, body: Json = {}, c: Ctx): Json {
     d.status = 'UNVERIFIED'
     for (const k of ['email', 'phone', 'document_type']) if (!(k in body)) d[k] = null
   }
-  if (path.includes('bank/')) {
+  if (path.includes('bank/') && path !== '/bank/generate-link') {
     d.country = market(c.o.dst)!.alpha3
     d.beneficiary_name = String(c.data['ben-create']?.full_name ?? c.user.name).toUpperCase()
     d.bank_name = body.identifiers?.bank_name ?? null
@@ -483,6 +483,8 @@ function copy(st: Step, c: Ctx): Copy {
     case 'payin-quote':
       return { title: 'Lock the rate', sub: `${money(c.amount, o.src)} via ${railName(o.payinMethod)}, as you chose. The quote holds the rate for 10 minutes.`, cta: 'Get a quote' }
     case 'payin-pay':
+      if (o.payinMethod === 'ACH_PULL')
+        return { title: `Pay ${money(pq?.sending_amount, o.src)}`, sub: 'Zapyd debits this amount from your linked bank account. You don\'t make a transfer.', cta: 'Confirm payment' }
       return {
         title: `Pay ${money(pq?.sending_amount, o.src)}`,
         sub: `Send exactly this amount, from a bank account in your name, before ${pq ? new Date(pq.expiry_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'the quote expires'}.${sm?.payin?.reference === 'required' ? ' Then enter the 12-digit UTR your bank gave you.' : ''}`,
@@ -823,7 +825,8 @@ export default function Demo() {
       setBusy(true)
       const run = epoch.current
       if (st.ui === 'phone-otp') note(st, `Phone ${user.country.dial} ${user.phone} verified by your app.`)
-      if (st.id === 'payin-pay') note(st, `User paid ${money(data['payin-quote']?.sending_amount, o.src)} via ${railName(o.payinMethod)}. Not an API call.`)
+      if (st.id === 'payin-pay')
+        note(st, o.payinMethod === 'ACH_PULL' ? `User confirmed the ${money(data['payin-quote']?.sending_amount, o.src)} debit from their linked account.` : `User paid ${money(data['payin-quote']?.sending_amount, o.src)} via ${railName(o.payinMethod)}. Not an API call.`)
       let body = request(st, editsFor(st), hash)
       if (st.id === 'payout-send') {
         const h = txHash(o.network)
@@ -838,6 +841,7 @@ export default function Demo() {
         return setI(at('payer-verified'))
       }
       if (!(await call(st, body))) return
+      if (st.id === 'payin-link') note(st, 'User linked their bank account on the hosted page. Your backend polls the bank list until it\'s VERIFIED.')
       for (const a of st.also ?? []) if (!(await call(a))) return
       if (st.ui === 'kyc-start' && alt) {
         // Payout-only: fill the address with the market's sample.
