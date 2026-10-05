@@ -99,6 +99,8 @@ export interface Choices {
   // Fiat to fiat is always a remittance, so the purpose isn't a choice there.
   purposeLocked: boolean
   remittanceDisabled?: string
+  // Fiat to INR: a standard payout or the RDA remittance API.
+  indiaApi: boolean
   bridge: boolean
 }
 
@@ -122,17 +124,25 @@ export function choices(o: Opts): Choices {
     remittance: d ? (rda ? 'rda' : 'purpose') : '',
     purposeLocked: !!(s && d),
     remittanceDisabled: rda && s?.fiat === 'INR' ? 'The remitter must live outside India' : undefined,
+    indiaApi: !!s && rda && s.fiat !== 'INR',
     bridge: !!(s && d),
   }
 }
+
+// The two payout APIs for fiat to INR.
+export const INDIA_API: { value: Opts['purpose']; label: string; sub: string }[] = [
+  { value: 'payout', label: 'Standard', sub: 'Full KYC beneficiary, IMPS or UPI' },
+  { value: 'remittance', label: 'RDA', sub: 'Light beneficiary KYC and a remitter abroad' },
+]
 
 // Snap options that don't fit the current source and destination.
 export function normalize(o: Opts): Opts {
   const n = { ...o }
   const c = choices(n)
   if (!c.payinMethods.includes(n.payinMethod)) n.payinMethod = c.payinMethods[0] ?? ''
-  // The pair decides the purpose: fiat to fiat is cross-border, anything else a payout.
-  n.purpose = c.purposeLocked && !c.remittanceDisabled ? 'remittance' : 'payout'
+  // The pair decides the purpose: fiat to fiat is cross-border, anything else a
+  // payout. Fiat to INR keeps the chosen API (standard payout or RDA).
+  n.purpose = c.indiaApi ? n.purpose : c.purposeLocked && !c.remittanceDisabled ? 'remittance' : 'payout'
   const c2 = choices(n)
   if (!c2.networks.includes(n.network)) n.network = c2.networks[0] ?? ''
   const ok = c2.rails.filter((r) => !r.disabled).map((r) => r.method)
@@ -1006,16 +1016,16 @@ export function build(o: Opts): Flow | { unsupported: string } {
     id: 'g-dest',
     col,
     title: 'Destination',
-    tag: { label: remit ? 'Cross-border' : 'Fiat', tone: 'blue' },
+    tag: { label: s ? 'Cross-border' : 'Fiat', tone: 'blue' },
     dashed: true,
     rows: [
       { id: 'r-dst', icon: `flag:${d.fiat}`, label: d.currency, sub: `${d.country} bank account`, kind: 'endpoint' },
-      { id: 'r-dst-rail', icon: 'landmark', label: `Paid via ${railName(rail.method)}`, sub: remit ? (rda ? 'Settled through RDA' : 'FAMILY_MAINTENANCE') : 'Payout', kind: 'info' },
+      { id: 'r-dst-rail', icon: 'landmark', label: `Paid via ${railName(rail.method)}`, sub: rda ? 'Settled through RDA' : remit ? 'FAMILY_MAINTENANCE' : 'Payout', kind: 'info' },
     ],
   })
   link(payout, dest, 'green')
 
-  const kindLabel = rda ? 'Cross-border transfer through RDA' : remit ? 'Cross-border transfer' : 'Offramp'
+  const kindLabel = rda ? 'Cross-border transfer through RDA' : s ? 'Cross-border transfer' : 'Offramp'
   const to = `${d.fiat} to ${/^[AEIO]/.test(d.country) ? 'an' : 'a'} ${d.country} bank account via ${railName(rail.method)}`
   return {
     title: s ? `${s.fiat} to ${d.fiat}` : `${asset} to ${d.fiat}`,

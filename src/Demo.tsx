@@ -15,6 +15,7 @@ import {
   HOST,
   ID,
   NETWORKS,
+  INDIA_API,
   OFFERED_COINS,
   build,
   choices,
@@ -1047,6 +1048,18 @@ export default function Demo() {
 
         {flow && choices(o).funding && i >= calcAt && !locked && (
           <section className="cfg" aria-label="Options">
+            {choices(o).indiaApi && (
+              <div className="setting">
+                <span className="setting-title">India payout</span>
+                <div className="seg" role="radiogroup" aria-label="India payout">
+                  {INDIA_API.map((it) => (
+                    <button key={it.value} role="radio" aria-checked={o.purpose === it.value} title={it.sub} onClick={() => setO(normalize({ ...o, purpose: it.value }))}>
+                      {it.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="setting">
               <span className="setting-title">Funding</span>
               <div className="seg" role="radiogroup" aria-label="Funding">

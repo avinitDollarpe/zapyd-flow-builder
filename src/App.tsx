@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from './Canvas'
 import { Code } from './Code'
-import { DEFAULTS, DESTINATIONS, NETWORKS, SOURCES, build, choices, coin, kindOf, market, normalize, pairFor, railName, stepFor, subtitle, type Opts, type Side } from './flow'
+import { DEFAULTS, DESTINATIONS, INDIA_API, NETWORKS, SOURCES, build, choices, coin, kindOf, market, normalize, pairFor, railName, stepFor, subtitle, type Opts, type Side } from './flow'
 import { Icon, Swap } from './icons'
 import { useTheme } from './theme'
 
@@ -17,7 +17,7 @@ const POPULAR: { o: Partial<Opts> & { src: string; dst: string }; note: string }
   { o: { src: 'USDC', dst: 'MXN', network: 'solana' }, note: 'SPEI' },
   { o: { src: 'USDC', dst: 'EUR', network: 'ethereum' }, note: 'SEPA' },
   { o: { src: 'USDC', dst: 'BRL', funding: 'prefunded' }, note: 'Prefunded' },
-  { o: { src: 'USD', dst: 'INR', payinMethod: 'WIRE' }, note: 'RDA' },
+  { o: { src: 'USD', dst: 'INR', payinMethod: 'WIRE', purpose: 'remittance' }, note: 'RDA' },
   { o: { src: 'USD', dst: 'MXN', payinMethod: 'WIRE' }, note: 'Wire' },
 ]
 
@@ -127,8 +127,16 @@ export default function App() {
           </p>
         </section>
 
-        {(c.funding || c.kyc.length > 1) && (
+        {(c.funding || c.kyc.length > 1 || c.indiaApi) && (
           <section className="cfg" aria-label="Options">
+            {c.indiaApi && (
+              <Setting
+                title="India payout"
+                value={opts.purpose}
+                onChange={(v) => set({ purpose: v as Opts['purpose'] })}
+                items={INDIA_API}
+              />
+            )}
             {c.funding && (
               <Setting
                 title="Funding"
