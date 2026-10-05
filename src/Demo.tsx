@@ -83,7 +83,9 @@ const NEW_USER: User = { name: 'Chakravarti Avinit', email: 'avinit@zapyd.com', 
 // Countries whose currency has payins get full KYC through the hosted flow;
 // the rest use payout-only onboarding (an address, no documents).
 const fullKyc = (c: Country) => !!market(c.fiat)?.payin
-const sourcesFor = (c: Country) => [...OFFERED_COINS, ...(fullKyc(c) ? [c.fiat] : [])]
+// The preview offers USDT next to USDC; the Flow Builder's pickers stay on USDC.
+const COINS = [...OFFERED_COINS, 'USDT']
+const sourcesFor = (c: Country) => [...COINS, ...(fullKyc(c) ? [c.fiat] : [])]
 
 function startOpts(c: Country): Opts {
   const o = fullKyc(c) ? { src: c.fiat, dst: 'USDC' } : { src: 'USDC', dst: c.fiat }
@@ -896,7 +898,7 @@ export default function Demo() {
     else if (side === 'src') p.payinMethod = method
     else p.rail = method
     if (!sourcesFor(user.country).includes(p.src)) p.src = 'USDC'
-    if (kindOf(p) === 'unsupported') p.dst = p.src === 'USDC' ? user.country.fiat : 'USDC'
+    if (kindOf(p) === 'unsupported') p.dst = coin(p.src) ? user.country.fiat : 'USDC'
     if (p.src !== o.src) setAmount(startAmount(p.src))
     setO(normalize(p))
   }
@@ -1659,7 +1661,7 @@ function Calc(p: ScreenProps & { o: Opts; amount: string; onAmount: (a: string) 
               {side === 'src' && !p.sources.includes(p.user.country.fiat) && (
                 <p className="ksheet-note">{market(p.user.country.fiat)!.currency} payins aren't available, so you send stablecoins. You can still receive {p.user.country.fiat}.</p>
               )}
-              <CurrencyPick side={side} o={o} codes={side === 'src' ? p.sources : DESTINATIONS} onCommit={(code, method) => (p.onCommit(side, code, method), close())} />
+              <CurrencyPick side={side} o={o} codes={side === 'src' ? p.sources : [...COINS, ...DESTINATIONS.filter((c) => !COINS.includes(c))]} onCommit={(code, method) => (p.onCommit(side, code, method), close())} />
             </>
           )}
         </Sheet>
