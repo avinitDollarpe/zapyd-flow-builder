@@ -94,6 +94,11 @@ function startOpts(c: Country): Opts {
 const START_AMOUNT: Record<string, string> = { INR: '10000', USD: '1000' }
 const startAmount = (src: string) => START_AMOUNT[src] ?? '100'
 
+// Payins and payouts answer quotation and initiate with 201 Created; every
+// other call shown here answers 200 OK.
+const httpStatus = (st: { method?: string; path?: string }) =>
+  st.method === 'POST' && /^\/(pis|pos)\/api\/v1\/.*\/(quotation|initiate)$/.test(st.path ?? '') ? ['201', 'Created'] : ['200', 'OK']
+
 const Flag = ({ c, size = 20 }: { c: Country; size?: number }) => <img className="flag" src={`/flags/${c.iso2}.svg`} width={size} height={size} alt="" />
 
 // ---------------------------------------------------------------- the journey
@@ -650,7 +655,7 @@ function LogEntry({ e, open, onToggle }: { e: Entry; open: boolean; onToggle: ()
       <button className="log-head" aria-expanded={open} onClick={onToggle}>
         {hook ? <span className="kind-chip kind-event">Webhook</span> : <b className={`verb verb-${e.step.method}`}>{e.step.method}</b>}
         <span className="log-path">{hook ? `${e.res!.type} · ${e.res!.event}` : e.step.path}</span>
-        {!hook && <span className="log-status">200</span>}
+        {!hook && <span className="log-status">{httpStatus(e.step)[0]}</span>}
         <span className="log-ms">{hook ? e.at : `${e.ms} ms`}</span>
         <Icon name="chevron-down" size={14} />
       </button>
@@ -681,7 +686,7 @@ function LogEntry({ e, open, onToggle }: { e: Entry; open: boolean; onToggle: ()
               <div className="block">
                 <div className="block-head">
                   <span>
-                    Response <span className="log-status">200 OK</span>
+                    Response <span className="log-status">{httpStatus(e.step).join(' ')}</span>
                   </span>
                   {!e.req && e.step.docs && (
                     <a className="icon-btn" href={docsUrl(e.step.docs)} target="_blank" rel="noreferrer" aria-label="Open in the API reference" title="Open in the API reference">
