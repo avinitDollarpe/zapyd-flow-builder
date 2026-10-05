@@ -5,9 +5,12 @@ Pick a source and a destination and see every Zapyd API call in order: a chained
 ```bash
 npm install
 npm run dev      # http://localhost:5180 (the docs page uses this port on localhost)
+npm run lint     # oxlint
 npm run check    # builds every source/destination/option combination and checks each flow
 npm run build    # static site in dist/
 ```
+
+Agent and contributor rules (checks before committing, keeping data in step with the docs, product language) are in [AGENTS.md](AGENTS.md).
 
 ## How it works
 
@@ -26,6 +29,6 @@ npm run build    # static site in dist/
 | `?embed=1` | Hides the logo and the footer |
 | `?theme=light` or `?theme=dark` | Initial theme |
 | `postMessage({ type: 'zapyd:theme', theme })` | Switches theme live. The docs page sends it when the reader toggles dark mode |
-| `#src=USDT&dst=MXN&...` | The selected flow. It is kept in the URL, so flows can be linked |
+| `#src=USDC&dst=MXN&...` | The selected flow. It is kept in the URL, so flows can be linked |
 
 Icons are from [Lucide](https://lucide.dev) (ISC). Flags are from [flagcdn](https://flagcdn.com), self-hosted in `public/flags`.
