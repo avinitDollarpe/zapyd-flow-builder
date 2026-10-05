@@ -727,6 +727,12 @@ const convert = (amount: number, src: string, dst: string) => {
 export default function Demo() {
   const [theme, setTheme] = useTheme()
   const [user, setUser] = useState<User>(NEW_USER)
+  // Your app's name and logo, shown in the phone's top bar.
+  const [brand, setBrand] = useState({ name: 'Your app', logo: '' })
+  const setLogo = (file?: File) => {
+    if (brand.logo) URL.revokeObjectURL(brand.logo)
+    setBrand((b) => ({ ...b, logo: file ? URL.createObjectURL(file) : '' }))
+  }
   const [o, setO] = useState<Opts>(() => startOpts(NEW_USER.country))
   const [amount, setAmount] = useState(() => startAmount(startOpts(NEW_USER.country).src))
 
@@ -957,8 +963,8 @@ export default function Demo() {
                 <span />
               )}
               <span className="kbrand">
-                <img className="klogo logo logo-light" src="/zapyd-light.svg" alt="Zapyd" />
-                <img className="klogo logo logo-dark" src="/zapyd-dark.svg" alt="Zapyd" />
+                {brand.logo ? <img className="kmark" src={brand.logo} alt={brand.name ? '' : 'App logo'} /> : <span className="kmark" aria-hidden="true" />}
+                {brand.name}
               </span>
               <span />
             </div>
@@ -997,6 +1003,19 @@ export default function Demo() {
             </button>
           )}
         </header>
+
+        <section className="cfg brand-cfg" aria-label="Your app">
+          <label className="brand-logo" title="Upload logo">
+            {brand.logo ? <img src={brand.logo} alt="" /> : <Icon name="upload" size={14} />}
+            <input type="file" accept="image/*" className="sr-only" aria-label="Upload logo" onChange={(e) => (setLogo(e.target.files?.[0]), (e.target.value = ''))} />
+          </label>
+          <input className="brand-name" value={brand.name} placeholder="App name" aria-label="App name" maxLength={24} onChange={(e) => setBrand((b) => ({ ...b, name: e.target.value }))} />
+          {brand.logo && (
+            <button className="icon-btn" onClick={() => setLogo()} aria-label="Remove logo" title="Remove logo">
+              <Icon name="x" size={14} />
+            </button>
+          )}
+        </section>
 
         <section className="cfg profile" aria-label="User">
           <span className="profile-avatar" aria-hidden="true">
