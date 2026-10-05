@@ -41,11 +41,16 @@ for (const src of codes)
         }
 
 // Spot checks on the rules the docs set.
-const rda = build(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR' }))
+// Fiat to INR offers both APIs: RDA when chosen, a standard payout otherwise.
+const rda = build(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'remittance' }))
 assert('steps' in rda && rda.steps.some((s) => s.path === '/pos/api/v1/remittance-payout/initiate'))
 assert('steps' in rda && rda.steps.find((s) => s.id === 'bank-create')?.body)
+const std = build(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'payout' }))
+assert('steps' in std && std.steps.some((s) => s.path === '/pos/api/v1/payout/initiate'))
+assert('steps' in std && !std.steps.some((s) => s.path?.includes('/remittance')))
 assert.equal(normalize({ ...DEFAULTS, src: 'INR', dst: 'INR' }).purpose, 'payout')
-assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', rail: 'UPI' }).rail, 'ACCOUNT_DETAILS')
+assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'remittance', rail: 'UPI' }).rail, 'ACCOUNT_DETAILS')
+assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'payout', rail: 'UPI' }).rail, 'UPI')
 assert.equal(normalize({ ...DEFAULTS, src: 'USDT', dst: 'INR', purpose: 'remittance' }).purpose, 'payout')
 const pre = build(normalize({ ...DEFAULTS, src: 'USDT', dst: 'MXN', funding: 'prefunded' }))
 assert('steps' in pre && !pre.steps.some((s) => (s.body as Record<string, unknown>)?.transaction_hash))
