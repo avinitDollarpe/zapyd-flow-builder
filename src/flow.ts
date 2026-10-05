@@ -358,6 +358,17 @@ export function build(o: Opts): Flow | { unsupported: string } {
     return { id: st.id, icon, label, sub: sub ?? (st.method ? `${st.method} ${short}` : undefined), kind: st.kind, step: n }
   }
   const group = (g: Group) => (groups.push(g), g)
+  // KYC sharing reads the organization's KYC requirements before add-kyc-data.
+  const kycConfig = (id: string, customerId: string) =>
+    step('search', {
+      id,
+      kind: 'api',
+      title: 'Get the KYC requirements',
+      text: 'Read the allowed `document_type` values, the `additional_info` keys and `is_tax_required`, and build the KYC form from them. Read it once per customer country.',
+      method: 'GET',
+      path: `/cms/api/v1/kyc/configuration/${customerId}`,
+      docs: '/api-reference-exchange/endpoint/kyc/configuration-{customer_id}',
+    }, undefined, 'GET /kyc/configuration/{customer_id}')
   const link = (from: Group | Row, to: Group, tone: Tone = 'gray') =>
     edges.push({ from: 'rows' in from ? from.rows[from.rows.length - 1].id : from.id, to: to.id, tone })
 
@@ -413,6 +424,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
           body: p.customer,
           docs: '/api-reference-exchange/endpoint/customer/create',
         }),
+        ...(o.kyc === 'sharing' ? [kycConfig('payer-config', ID.payer)] : []),
         o.kyc === 'sharing'
           ? step('id-card', {
               id: 'payer-kyc',
@@ -610,6 +622,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
             body: { client_reference_id: 'beneficiary-001', full_name: name, phone: '9911002211', alpha_3_country_code: 'IND' },
             docs: '/api-reference-exchange/endpoint/customer/create',
           }),
+          ...(!rda && o.kyc === 'sharing' ? [kycConfig('ben-config', beneficiaryId)] : []),
           rda
             ? step('id-card', {
                 id: 'ben-kyc',
