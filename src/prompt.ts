@@ -4,7 +4,7 @@
 import { docsUrl, type Flow, type Step } from './flow'
 
 const PROD = 'https://api.zapyd.com'
-const SANDBOX = 'https://sandbox.zapyd.com'
+const SANDBOX = 'https://api-sandbox.zapyd.com'
 
 // Sample IDs in the step bodies, shown to the agent as the value it must wire in.
 const PLACEHOLDERS: Record<string, string> = {

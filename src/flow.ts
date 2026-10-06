@@ -327,7 +327,7 @@ export interface Flow {
   steps: Step[]
 }
 
-export const HOST = 'https://sandbox.zapyd.com'
+export const HOST = 'https://api-sandbox.zapyd.com'
 // Mintlify host until docs.zapyd.com is live.
 const DOCS = 'https://dollarpe.mintlify.site'
 export const ID = {
