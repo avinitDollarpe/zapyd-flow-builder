@@ -168,27 +168,33 @@ export default function App() {
             <Icon name="chevron-down" size={14} />
           </summary>
           <ul className="presets">
-            {POPULAR.map((p) => {
-              const k = kindOf(p.o)
-              const on = p.o.src === opts.src && p.o.dst === opts.dst
-              return (
-                <li key={p.o.src + p.o.dst + p.note}>
-                  <button className="preset" aria-current={on} onClick={() => setOpts(normalize({ ...DEFAULTS, ...p.o }))}>
-                    <span className="preset-pair" aria-hidden="true">
-                      <Icon name={market(p.o.src) ? `flag:${p.o.src}` : `coin:${p.o.src}`} size={20} />
-                      <Icon name={market(p.o.dst) ? `flag:${p.o.dst}` : `coin:${p.o.dst}`} size={20} />
-                    </span>
-                    <span className="preset-code">{p.o.src}</span>
-                    <Icon name="arrow-right" size={12} />
-                    <span className="preset-code">{p.o.dst}</span>
-                    <span className="preset-meta">
+            {GROUPS.map((k) => [
+              <li key={k} className={`preset-group kind-${k}`} aria-hidden="true">
+                {KIND_SHORT[k]}
+              </li>,
+              ...POPULAR.filter((p) => kindOf(p.o) === k).map((p) => {
+                const on = p.o.src === opts.src && p.o.dst === opts.dst
+                return (
+                  <li key={p.o.src + p.o.dst + p.note}>
+                    <button
+                      className="preset"
+                      aria-current={on}
+                      aria-label={`${KIND_SHORT[k]}: ${p.o.src} to ${p.o.dst}, ${p.note}`}
+                      onClick={() => setOpts(normalize({ ...DEFAULTS, ...p.o }))}
+                    >
+                      <span className="preset-pair" aria-hidden="true">
+                        <Icon name={market(p.o.src) ? `flag:${p.o.src}` : `coin:${p.o.src}`} size={20} />
+                        <Icon name={market(p.o.dst) ? `flag:${p.o.dst}` : `coin:${p.o.dst}`} size={20} />
+                      </span>
+                      <span className="preset-code">{p.o.src}</span>
+                      <Icon name="arrow-right" size={12} />
+                      <span className="preset-code">{p.o.dst}</span>
                       <span className="preset-note">{p.note}</span>
-                      <span className={`preset-kind kind-${k}`}>{KIND_SHORT[k]}</span>
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
+                    </button>
+                  </li>
+                )
+              }),
+            ])}
           </ul>
         </details>
       </aside>
@@ -208,6 +214,9 @@ export default function App() {
     </div>
   )
 }
+
+// Popular flows are listed under these headings, in this order.
+const GROUPS = ['onramp', 'offramp', 'remittance'] as const
 
 const KIND_SHORT: Record<ReturnType<typeof kindOf>, string> = {
   onramp: 'Onramp',
