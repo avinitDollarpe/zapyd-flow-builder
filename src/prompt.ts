@@ -31,11 +31,11 @@ function sandbox(st: Step, flow: Flow): string | undefined {
     case 'payer-verified':
       return 'set it with `PATCH /cms/api/v1/kyc/mock-kyc-status` `{"customer_id": "...", "kyc_status": "VERIFIED"}`. It sends the same `CUSTOMER` webhook. Test `DOCUMENT_VERIFICATION_FAILED` too.'
     case 'ben-kyc':
-      return st.path?.endsWith('/kyc/add-kyc-data') || st.path?.endsWith('/kyc/generate-link')
+      return st.path?.endsWith('/kyc/generate-link') || (st.body as { selfie_url?: string } | undefined)?.selfie_url
         ? 'set the result with `PATCH /cms/api/v1/kyc/mock-kyc-status` `{"customer_id": "...", "kyc_status": "VERIFIED"}`.'
         : undefined
     case 'ben-create':
-      return st.path?.endsWith('/customer/payout/create')
+      return (st.body as { capabilities?: string[] } | undefined)?.capabilities?.includes('PAYIN') === false
         ? 'payout-only onboarding must be enabled for the country in sandbox too. Ask support if this returns an error.'
         : undefined
     case 'bank-verified':

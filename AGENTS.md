@@ -55,8 +55,9 @@ The same rules as the docs (see the docs repo's `AGENT.md`, "Product language").
 - Zapyd branding only, and never name or allude to service providers (payout partners, banks, KYC vendors) or internal routing. The UI Preview's phone shows the partner's app ("Your app", with an uploadable logo), not Zapyd.
 - Payments are for individuals only.
 - Two payout models: per order (`transaction_hash`) and prefunded. Never show the internal exchange-organization flow.
-- Fiat to fiat is cross-border: a payin to USDC, then a payout. Into INR there are two options, a standard payout or the RDA remittance API (the "India payout" setting); every other market uses a standard payout with `transfer_purpose`.
-- KYC sharing reads `GET /kyc/configuration/{customer_id}` before `add-kyc-data`.
+- Fiat to fiat is cross-border: a payin to USDC, then a payout. Into INR there are two options, a standard payout or the RDA remittance API (the "India payout" setting); every other market uses a standard payout to a payout-only customer.
+- One set of onboarding calls for every flow: `customer/create` with `capabilities` (`PAYIN`, `PAYOUT`, `REMITTANCE_PAYOUT`), `GET /kyc/configuration/{customer_id}`, `kyc/add-data` and `bank/create`. A payout-only customer (no `PAYIN`) sends its address and `beneficiary_identifiers` with `kyc/add-data`. The RDA sender is a remitter (`kyc/remitter/create`).
+- KYC sharing reads `GET /kyc/configuration/{customer_id}` before `add-data`.
 - The Flow Builder offers USDC as the stablecoin; the UI Preview also offers USDT. Say "stablecoins" in copy, not "USDT or USDC".
 
 ## Code

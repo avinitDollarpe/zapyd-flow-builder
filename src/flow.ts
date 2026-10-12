@@ -7,6 +7,8 @@ export interface Rail {
   payment_method?: string
   identifiers: string[] | Record<string, string>
   beneficiary?: string[]
+  // The method's own address fields, when they differ from the market's.
+  address?: string[]
 }
 export interface Market {
   fiat: string
@@ -63,7 +65,7 @@ export const DEFAULTS: Opts = {
   rail: '',
   funding: 'jit',
   purpose: 'payout',
-  kyc: 'sdk',
+  kyc: 'sharing',
   bridge: 'USDC',
 }
 
@@ -99,7 +101,7 @@ export interface Choices {
   // Fiat to fiat is always a remittance, so the purpose isn't a choice there.
   purposeLocked: boolean
   remittanceDisabled?: string
-  // Fiat to INR: a standard payout or the RDA remittance API.
+  // Into INR (from any source but INR): a normal payout or the RDA remittance payout.
   indiaApi: boolean
   bridge: boolean
 }
@@ -111,28 +113,28 @@ export function choices(o: Opts): Choices {
   const rda = d?.fiat === 'INR'
   const kyc: Kyc[] = []
   if (s?.payin) kyc.push(...s.payin.kyc)
-  else if (d?.onboarding === 'standard' && o.purpose === 'payout') kyc.push('sharing', 'sdk')
   return {
     networks: coin(asset)?.networks ?? [],
     payinMethods: s?.payin?.methods ?? [],
     rails: (d?.rails ?? []).map((r) => ({
       method: r.method,
-      disabled: rda && o.purpose === 'remittance' && r.method === 'UPI' ? 'Not available for cross-border transfers' : undefined,
+      disabled: rda && r.method === 'UPI' ? 'Payout-only beneficiaries use bank account details' : undefined,
     })),
     kyc: [...new Set(kyc)],
     funding: !!d,
     remittance: d ? (rda ? 'rda' : 'purpose') : '',
     purposeLocked: !!(s && d),
     remittanceDisabled: rda && s?.fiat === 'INR' ? 'The remitter must live outside India' : undefined,
-    indiaApi: !!s && rda && s.fiat !== 'INR',
+    // Any source but INR can pay into India through either API.
+    indiaApi: rda && s?.fiat !== 'INR',
     bridge: !!(s && d),
   }
 }
 
 // The two payout APIs for fiat to INR.
 export const INDIA_API: { value: Opts['purpose']; label: string; sub: string }[] = [
-  { value: 'payout', label: 'Standard', sub: 'Full KYC beneficiary, IMPS or UPI' },
-  { value: 'remittance', label: 'RDA', sub: 'Light beneficiary KYC and a remitter abroad' },
+  { value: 'payout', label: 'Normal', sub: 'Normal payout: PAYOUT beneficiary with income range and profession' },
+  { value: 'remittance', label: 'Remittance', sub: 'Remittance payout (RDA): REMITTANCE_PAYOUT beneficiary and a remitter abroad' },
 ]
 
 // Snap options that don't fit the current source and destination.
@@ -141,13 +143,14 @@ export function normalize(o: Opts): Opts {
   const c = choices(n)
   if (!c.payinMethods.includes(n.payinMethod)) n.payinMethod = c.payinMethods[0] ?? ''
   // The pair decides the purpose: fiat to fiat is cross-border, anything else a
-  // payout. Fiat to INR keeps the chosen API (standard payout or RDA).
+  // payout. Into INR keeps the chosen API (normal payout or remittance payout).
   n.purpose = c.indiaApi ? n.purpose : c.purposeLocked && !c.remittanceDisabled ? 'remittance' : 'payout'
   const c2 = choices(n)
   if (!c2.networks.includes(n.network)) n.network = c2.networks[0] ?? ''
   const ok = c2.rails.filter((r) => !r.disabled).map((r) => r.method)
   if (!ok.includes(n.rail)) n.rail = ok[0] ?? ''
-  if (c2.kyc.length && !c2.kyc.includes(n.kyc)) n.kyc = c2.kyc[c2.kyc.length - 1]
+  // KYC sharing is the default wherever it's offered; the USA offers only the SDK.
+  if (c2.kyc.length && !c2.kyc.includes(n.kyc)) n.kyc = c2.kyc.includes('sharing') ? 'sharing' : c2.kyc[0]
   if (!coin(n.bridge) || !OFFERED_COINS.includes(n.bridge)) n.bridge = 'USDC'
   return n
 }
@@ -368,13 +371,13 @@ export function build(o: Opts): Flow | { unsupported: string } {
     return { id: st.id, icon, label, sub: sub ?? (st.method ? `${st.method} ${short}` : undefined), kind: st.kind, step: n }
   }
   const group = (g: Group) => (groups.push(g), g)
-  // KYC sharing reads the organization's KYC requirements before add-kyc-data.
+  // KYC sharing reads the customer's KYC requirements before add-data.
   const kycConfig = (id: string, customerId: string) =>
     step('search', {
       id,
       kind: 'api',
       title: 'Get the KYC requirements',
-      text: 'Read the allowed `document_type` values, the `additional_info` keys and `is_tax_required`, and build the KYC form from them. Read it once per customer country.',
+      text: 'Read `requirements.PAYIN.kyc`: the allowed `document_type` values, the `additional_info` keys and whether `tax_number` is required. Build the KYC form from them.',
       method: 'GET',
       path: `/cms/api/v1/kyc/configuration/${customerId}`,
       docs: '/api-reference-exchange/endpoint/kyc/configuration-{customer_id}',
@@ -442,18 +445,21 @@ export function build(o: Opts): Flow | { unsupported: string } {
               title: 'Share verified KYC',
               text: 'Send identity data you already verified. The customer moves to `PROCESSING`.',
               method: 'POST',
-              path: '/cms/api/v1/kyc/add-kyc-data',
+              path: '/cms/api/v1/kyc/add-data',
               body: {
                 customer_id: ID.payer,
                 full_name: p.customer.full_name,
-                phone: p.customer.phone,
+                phone: '9911002211',
                 full_address: '12 MG Road, Bengaluru, Karnataka 560001',
                 dob: '15-08-1992',
                 registered_date: '01-01-2025',
                 tax_number: 'ABCDE1234F',
                 document_type: 'AADHAAR',
                 document_details: { document_number: '123412341234' },
+                document_front_image_url: 'https://files.example.com/kyc/aadhaar-front.jpg',
+                document_back_image_url: 'https://files.example.com/kyc/aadhaar-back.jpg',
                 selfie_url: 'https://files.example.com/kyc/selfie.jpg',
+                additional_info: { income_range: '10L-15L', profession: 'Private Sector Employee' },
               },
               docs: '/guides/customers/kyc-sharing',
             })
@@ -558,7 +564,6 @@ export function build(o: Opts): Flow | { unsupported: string } {
           body: {
             quotation_id: ID.payinQuote,
             customer_id: ID.payer,
-            client_reference_id: 'payin-001',
             ...(p.reference === 'required' ? { transaction_reference_id: '412345678901' } : {}),
           },
           docs: '/api-reference-exchange/endpoint/payin/order/initiate',
@@ -612,70 +617,42 @@ export function build(o: Opts): Flow | { unsupported: string } {
   const onboard: Group[] = []
 
   if (d.onboarding === 'standard') {
-    // India: full customer, then /bank/create
-    const name = rda ? 'Ravi Kumar' : 'Priya Sharma'
+    // India: a payout-only beneficiary whose capability follows the API.
+    // Normal payout (PAYOUT) needs the declarations; a remittance payout
+    // (REMITTANCE_PAYOUT) needs nothing beyond the customer and the account.
+    const capability = rda ? 'REMITTANCE_PAYOUT' : 'PAYOUT'
     onboard.push(
       group({
         id: 'g-beneficiary',
         col: onboardCol,
         title: 'Beneficiary',
-        tag: { label: 'Once per beneficiary', tone: 'gray' },
+        tag: { label: capability, tone: 'gray' },
         rows: [
           step('user-plus', {
             id: 'ben-create',
             returns: beneficiaryId,
             kind: 'api',
             title: 'Create the beneficiary',
-            text: 'The person in India who receives the INR. Save the returned `id` as `customer_id`.',
+            text: `The person in India who receives the INR. \`${capability}\` makes a payout-only customer, with no KYC journey. Payout-only onboarding must be enabled for your organization and India. Save the returned \`id\` as \`customer_id\`.`,
             method: 'POST',
             path: '/cms/api/v1/customer/create',
-            body: { client_reference_id: 'beneficiary-001', full_name: name, phone: '9911002211', alpha_3_country_code: 'IND' },
+            body: { capabilities: [capability], client_reference_id: 'beneficiary-001', alpha_3_country_code: 'IND' },
             docs: '/api-reference-exchange/endpoint/customer/create',
           }),
-          ...(!rda && o.kyc === 'sharing' ? [kycConfig('ben-config', beneficiaryId)] : []),
-          rda
-            ? step('id-card', {
-                id: 'ben-kyc',
-                kind: 'api',
-                title: 'Run beneficiary KYC',
-                text: 'Light KYC for cross-border beneficiaries. It replaces full document KYC. `tax_number` (PAN) is optional.',
-                method: 'POST',
-                path: '/cms/api/v1/kyc/remittance-beneficiary-kyc',
-                body: { customer_id: beneficiaryId, tax_number: 'HCDPS3890E' },
-                docs: '/api-reference-exchange/endpoint/kyc/remittance-beneficiary-kyc',
-              })
-            : o.kyc === 'sharing'
-              ? step('id-card', {
-                  id: 'ben-kyc',
-                  kind: 'api',
-                  title: 'Share verified KYC',
-                  text: 'Send identity data you already verified, then wait for the `CUSTOMER` webhook with `VERIFIED`.',
-                  method: 'POST',
-                  path: '/cms/api/v1/kyc/add-kyc-data',
-                  body: {
-                    customer_id: beneficiaryId,
-                    full_name: name,
-                    phone: '9911002211',
-                    full_address: '12 MG Road, Bengaluru, Karnataka 560001',
-                    dob: '15-08-1992',
-                    registered_date: '01-01-2025',
-                    tax_number: 'ABCDE1234F',
-                    document_type: 'AADHAAR',
-                    document_details: { document_number: '123412341234' },
-                    selfie_url: 'https://files.example.com/kyc/selfie.jpg',
-                  },
-                  docs: '/guides/customers/kyc-sharing',
-                })
-              : step('id-card', {
-                  id: 'ben-kyc',
-                  kind: 'api',
-                  title: 'Generate a KYC link',
-                  text: 'Redirect the beneficiary to the returned `url`, then wait for the `CUSTOMER` webhook with `VERIFIED`.',
-                  method: 'POST',
-                  path: '/cms/api/v1/kyc/generate-link',
-                  body: { customer_id: beneficiaryId, redirect_url: 'https://yourapp.com/kyc/return' },
-                  docs: '/guides/customers/kyc-sdk',
-                }),
+          step('id-card', {
+            id: 'ben-kyc',
+            kind: 'api',
+            title: rda ? 'Verify the beneficiary' : 'Add the PAN and declarations',
+            text: rda
+              ? 'This call verifies the customer: it stays `UNVERIFIED` until then. A remittance beneficiary needs no fields, and `tax_number` (PAN) is optional.'
+              : '`tax_number` (PAN), `income_range` and `profession` are required for a `PAYOUT` customer in India. The customer is `PROCESSING` while the PAN is checked, then `VERIFIED`.',
+            method: 'POST',
+            path: '/cms/api/v1/kyc/add-data',
+            body: rda
+              ? { customer_id: beneficiaryId }
+              : { customer_id: beneficiaryId, tax_number: 'ABCDE1234F', income_range: '10L-15L', profession: 'Private Sector Employee' },
+            docs: '/guides/customers/payout-only-onboarding#india',
+          }),
         ],
       }),
     )
@@ -691,24 +668,12 @@ export function build(o: Opts): Flow | { unsupported: string } {
             returns: ID.bank,
             kind: 'api',
             title: 'Add the bank account',
-            text: 'Verified with a penny drop. The holder\'s name must match the KYC name. Save the returned `id` as `bank_id`.',
+            text: 'Account number and IFSC. The account is checked when the payout runs. Save the returned `id` as `bank_id`.',
             method: 'POST',
             path: '/cms/api/v1/bank/create',
             body: { customer_id: beneficiaryId, bank_account_type: rail.method, identifiers: rail.identifiers },
             docs: '/api-reference-exchange/endpoint/bank/create',
           }),
-          step(
-            'bell',
-            {
-              id: 'bank-verified',
-              kind: 'event',
-              title: 'Wait for the bank VERIFIED',
-              text: 'The `BANK` webhook reports `VERIFIED`. Quote only against a verified account.',
-              docs: '/guides/development-and-testing/webhooks',
-            },
-            'BANK webhook',
-            'status VERIFIED',
-          ),
         ],
       }),
     )
@@ -719,6 +684,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
       (rail.identifiers as string[]).map((k) => [k, sm.ids[k] ?? EXTRA_IDS[d.fiat]?.[k] ?? '']),
     )
     const ben = Object.fromEntries((rail.beneficiary ?? []).map((k) => [k, sm.beneficiary[k] ?? '']))
+    const address = rail.address ?? d.address
     onboard.push(
       group({
         id: 'g-beneficiary',
@@ -731,36 +697,34 @@ export function build(o: Opts): Flow | { unsupported: string } {
             returns: beneficiaryId,
             kind: 'api',
             title: 'Create the beneficiary',
-            text: `Payout-only onboarding skips full KYC. It must be enabled for your organization and for ${d.country}. Save the returned \`id\` as \`customer_id\`.`,
+            text: `\`capabilities: ["PAYOUT"]\` makes a payout-only customer, with no KYC journey. Payout-only onboarding must be enabled for your organization and for ${d.country}. Save the returned \`id\` as \`customer_id\`.`,
             method: 'POST',
-            path: '/cms/api/v1/customer/payout/create',
-            body: { client_reference_id: 'beneficiary-001', full_name: sm.name, alpha_3_country_code: d.alpha3 },
+            path: '/cms/api/v1/customer/create',
+            body: { capabilities: ['PAYOUT'], client_reference_id: 'beneficiary-001', alpha_3_country_code: d.alpha3 },
             docs: '/guides/customers/payout-only-onboarding',
           }),
-          step('id-card', {
+          step('search', {
             id: 'ben-kyc',
             kind: 'api',
-            title: 'Create the KYC profile',
-            text: 'Creates the beneficiary\'s payout KYC record.',
-            method: 'POST',
-            path: '/cms/api/v1/kyc/payout/add-kyc-data',
-            body: { customer_id: beneficiaryId },
-            docs: '/api-reference-exchange/endpoint/kyc/payout-add-kyc-data',
+            title: 'Read the requirements',
+            text: 'Returns the address fields, and each payout method\'s `identifiers` and `beneficiary_identifiers`.',
+            method: 'GET',
+            path: `/cms/api/v1/kyc/configuration/${beneficiaryId}`,
+            docs: '/api-reference-exchange/endpoint/kyc/configuration-{customer_id}',
           }),
           step('map-pin', {
             id: 'ben-address',
             kind: 'api',
-            title: 'Add the address',
-            text: `${d.country} needs ${d.address.map((a) => `\`${a}\``).join(', ')}${Object.keys(ben).length ? ' and the `beneficiary_identifiers` for this rail' : ''}.`,
+            title: address.length ? 'Add the address' : 'Verify the beneficiary',
+            text: `This call verifies the customer: it stays \`UNVERIFIED\` until then. ${address.length ? `${d.country} needs ${address.map((a) => `\`${a}\``).join(', ')}` : `${rail.method} needs no address, so send only \`customer_id\``}${Object.keys(ben).length ? ', and the `beneficiary_identifiers` for this rail' : ''}.`,
             method: 'POST',
-            path: '/cms/api/v1/kyc/payout/add-sender-kyc-data',
+            path: '/cms/api/v1/kyc/add-data',
             body: {
-              client_reference_id: 'beneficiary-001',
-              country_code: d.alpha3,
-              ...sm.address,
+              customer_id: beneficiaryId,
+              ...Object.fromEntries(address.map((a) => [a, sm.address[a] ?? ''])),
               ...(Object.keys(ben).length ? { beneficiary_identifiers: ben } : {}),
             },
-            docs: '/api-reference-exchange/endpoint/kyc/payout-add-sender-kyc-data',
+            docs: '/api-reference-exchange/endpoint/kyc/add-data',
           }),
         ],
       }),
@@ -777,18 +741,11 @@ export function build(o: Opts): Flow | { unsupported: string } {
             returns: ID.bank,
             kind: 'api',
             title: 'Add the bank account',
-            text: remit
-              ? '`transfer_purpose` and `is_self_transfer: false` mark every payout to this account as cross-border. Save the returned `id` as `bank_id`.'
-              : 'Save the returned `id` as `bank_id`.',
+            text: 'Save the returned `id` as `bank_id`.',
             method: 'POST',
-            path: '/cms/api/v1/bank/payout/create',
-            body: {
-              customer_id: beneficiaryId,
-              bank_account_type: rail.method,
-              identifiers: ids,
-              ...(remit ? { transfer_purpose: 'FAMILY_MAINTENANCE', is_self_transfer: false } : {}),
-            },
-            docs: '/api-reference-exchange/endpoint/bank/payout-create',
+            path: '/cms/api/v1/bank/create',
+            body: { customer_id: beneficiaryId, bank_account_type: rail.method, identifiers: ids },
+            docs: '/api-reference-exchange/endpoint/bank/create',
           }),
         ],
       }),
@@ -814,7 +771,6 @@ export function build(o: Opts): Flow | { unsupported: string } {
             path: '/cms/api/v1/kyc/remitter/create',
             body: fromUs
               ? {
-                  client_reference_id: 'remitter-001',
                   first_name: 'Jane',
                   last_name: 'Doe',
                   dob: '1990-01-15',
@@ -828,7 +784,6 @@ export function build(o: Opts): Flow | { unsupported: string } {
                   id_number: 'P1234567',
                 }
               : {
-                  client_reference_id: 'remitter-001',
                   first_name: 'Siva',
                   last_name: 'Raj',
                   dob: '1990-01-15',
@@ -952,13 +907,11 @@ export function build(o: Opts): Flow | { unsupported: string } {
         quotation_id: ID.payoutQuote,
         customer_id: beneficiaryId,
         remitter_id: ID.remitter,
-        client_reference_id: 'remit-001',
         ...(prefunded ? {} : { transaction_hash: '0x9f2c3b1a...' }),
       }
     : {
         quotation_id: ID.payoutQuote,
         customer_id: beneficiaryId,
-        client_reference_id: 'payout-001',
         ...(prefunded ? {} : { transaction_hash: '0x9f2c3b1a...' }),
       }
   rows.push(
@@ -980,7 +933,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
           id: 'payout-success',
           kind: 'event',
           title: 'Wait for SUCCESS',
-          text: `The \`PAYOUT\` webhook moves to \`SUCCESS\`${d.fiat === 'INR' ? ' with the bank `utr`. Show it to the user as proof of payment' : ''}. Every event carries your \`client_reference_id\`.`,
+          text: `The \`PAYOUT\` webhook moves to \`SUCCESS\`${d.fiat === 'INR' ? ' with the bank `utr`. Show it to the user as proof of payment' : ''}.`,
           docs: '/guides/payments/payouts',
         },
         'PAYOUT webhook',
@@ -1006,12 +959,12 @@ export function build(o: Opts): Flow | { unsupported: string } {
     dashed: true,
     rows: [
       { id: 'r-dst', icon: `flag:${d.fiat}`, label: d.currency, sub: `${d.country} bank account`, kind: 'endpoint' },
-      { id: 'r-dst-rail', icon: 'landmark', label: `Paid via ${railName(rail.method)}`, sub: rda ? 'Settled through RDA' : remit ? 'FAMILY_MAINTENANCE' : 'Payout', kind: 'info' },
+      { id: 'r-dst-rail', icon: 'landmark', label: `Paid via ${railName(rail.method)}`, sub: rda ? 'Remittance payout through RDA' : remit ? 'Cross-border payout' : 'Payout', kind: 'info' },
     ],
   })
   link(payout, dest, 'green')
 
-  const kindLabel = rda ? 'Cross-border transfer through RDA' : s ? 'Cross-border transfer' : 'Offramp'
+  const kindLabel = rda ? (s ? 'Cross-border transfer, remittance payout through RDA' : 'Remittance payout through RDA') : s ? 'Cross-border transfer' : 'Offramp'
   const to = `${d.fiat} to ${/^[AEIO]/.test(d.country) ? 'an' : 'a'} ${d.country} bank account via ${railName(rail.method)}`
   return {
     title: s ? `${s.fiat} to ${d.fiat}` : `${asset} to ${d.fiat}`,

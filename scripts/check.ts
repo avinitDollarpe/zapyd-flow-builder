@@ -31,6 +31,9 @@ for (const src of codes)
               for (const s of f.steps) {
                 if (s.method === 'POST') assert(s.body, `${at}: ${s.id} has no body`)
                 assert(!JSON.stringify(s.body ?? {}).includes('""'), `${at}: ${s.id} has an empty value`)
+                // One set of onboarding calls for every flow: no payout-only routes, no purpose on the bank account.
+                assert(!/\/(customer|bank|kyc)\/payout\/|add-kyc-data|remittance-beneficiary-kyc/.test(s.path ?? ''), `${at}: ${s.id} uses a removed route`)
+                assert(!JSON.stringify(s.body ?? {}).includes('transfer_purpose'), `${at}: ${s.id} sends transfer_purpose`)
               }
               assert(f.groups.some((g) => g.id === 'g-dest'), `${at}: no destination`)
               // The agent prompt names every call and shows IDs as placeholders, not sample UUIDs.
@@ -50,11 +53,24 @@ assert('steps' in std && std.steps.some((s) => s.path === '/pos/api/v1/payout/in
 assert('steps' in std && !std.steps.some((s) => s.path?.includes('/remittance')))
 assert.equal(normalize({ ...DEFAULTS, src: 'INR', dst: 'INR' }).purpose, 'payout')
 assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'remittance', rail: 'UPI' }).rail, 'ACCOUNT_DETAILS')
-assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'payout', rail: 'UPI' }).rail, 'UPI')
-assert.equal(normalize({ ...DEFAULTS, src: 'USDT', dst: 'INR', purpose: 'remittance' }).purpose, 'payout')
+assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'payout', rail: 'UPI' }).rail, 'ACCOUNT_DETAILS')
+assert.equal(normalize({ ...DEFAULTS, src: 'USDT', dst: 'INR', purpose: 'remittance' }).purpose, 'remittance')
 const pre = build(normalize({ ...DEFAULTS, src: 'USDT', dst: 'MXN', funding: 'prefunded' }))
 assert('steps' in pre && !pre.steps.some((s) => (s.body as Record<string, unknown>)?.transaction_hash))
 assert('steps' in pre && !pre.steps.some((s) => s.path?.includes('/prefunded/')))
 assert('unsupported' in build(normalize({ ...DEFAULTS, src: 'USDT', dst: 'USDC' })))
+assert.equal(normalize({ ...DEFAULTS, src: 'INR', dst: 'USDC' }).kyc, 'sharing')
+assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'USDC' }).kyc, 'sdk')
+// India: the beneficiary's capability follows the API. Normal payout sends the
+// PAN and declarations; a remittance payout verifies with only customer_id. Bodies hold required fields only.
+const po = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'INR' }))
+assert('steps' in po && po.steps.some((s) => JSON.stringify(s.body ?? {}).includes('"capabilities":["PAYOUT"]')))
+assert('steps' in po && po.steps.some((s) => (s.body as Record<string, unknown>)?.income_range && (s.body as Record<string, unknown>)?.tax_number))
+const rem = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'INR', purpose: 'remittance' }))
+assert('steps' in rem && rem.steps.some((s) => s.path?.endsWith('/remittance-payout/initiate')))
+assert('steps' in rem && !rem.steps.some((s) => (s.body as Record<string, unknown>)?.income_range))
+assert('steps' in rem && rem.steps.some((s) => JSON.stringify(s.body ?? {}).includes('"capabilities":["REMITTANCE_PAYOUT"]')))
+assert('steps' in rem && rem.steps.some((s) => s.path?.endsWith('/kyc/add-data') && JSON.stringify(s.body) === JSON.stringify({ customer_id: s.body && (s.body as Record<string, unknown>).customer_id })))
+for (const f of [po, rem]) assert('steps' in f && !f.steps.some((s) => (s.body as Record<string, unknown>)?.client_reference_id && s.id !== 'ben-create'))
 
 console.log(`ok: ${flows} flows`)

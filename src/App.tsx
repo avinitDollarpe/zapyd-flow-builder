@@ -57,7 +57,8 @@ export default function App() {
   const kind = kindOf(opts)
   // A pick locks the code and its method together.
   const commit = (side: Side, code: string, method: string) => {
-    const patch: Partial<Opts> = pairFor(opts, side, code)
+    // A new route starts on KYC sharing again.
+    const patch: Partial<Opts> = { ...pairFor(opts, side, code), kyc: 'sharing' }
     if (coin(code)) patch.network = method
     else if (side === 'src') patch.payinMethod = method
     else patch.rail = method
@@ -116,7 +117,7 @@ export default function App() {
         <section className="cfg route" aria-label="Route">
           <Endpoint label="From" side="src" opts={opts} code={opts.src} method={methodOf(opts, 'src')} onCommit={commit} />
           {(!market(opts.dst) || market(opts.dst)!.payin) && (
-            <button className="route-swap" aria-label="Swap source and destination" title="Swap source and destination" onClick={() => set({ src: opts.dst, dst: opts.src })}>
+            <button className="route-swap" aria-label="Swap source and destination" title="Swap source and destination" onClick={() => set({ src: opts.dst, dst: opts.src, kyc: 'sharing' })}>
               <Icon name="swap" size={12} />
             </button>
           )}
@@ -127,7 +128,7 @@ export default function App() {
           </p>
         </section>
 
-        {(c.funding || c.kyc.length > 1 || c.indiaApi) && (
+        {(c.funding || c.indiaApi) && (
           <section className="cfg" aria-label="Options">
             {c.indiaApi && (
               <Setting
@@ -145,17 +146,6 @@ export default function App() {
                 items={[
                   { value: 'jit', label: 'Per order', sub: 'Send crypto for each payout' },
                   { value: 'prefunded', label: 'Prefunded', sub: 'Each payout debits a balance you top up' },
-                ]}
-              />
-            )}
-            {c.kyc.length > 1 && (
-              <Setting
-                title="KYC"
-                value={opts.kyc}
-                onChange={(v) => set({ kyc: v as Opts['kyc'] })}
-                items={[
-                  { value: 'sdk', label: 'SDK', sub: 'Hosted flow, the user verifies' },
-                  { value: 'sharing', label: 'Sharing', sub: 'Send data you already verified' },
                 ]}
               />
             )}

@@ -193,7 +193,7 @@ svg { flex: none; }
 .setting { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 40px; padding: 0 0 0 8px; }
 .setting-title { font-size: 13px; color: var(--gray-500); }
 .setting .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
-.setting .seg button { height: 28px; padding: 0 8px; font-size: 12.5px; }
+.setting .seg button { min-width: 0; height: 28px; padding: 0 8px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .popular summary { display: flex; align-items: center; justify-content: space-between; height: 32px; padding: 0 8px; border-radius: 8px; list-style: none; cursor: pointer; font-size: 13px; color: var(--gray-500); transition-property: background-color, color, scale; transition-duration: 150ms; }
 .popular summary::-webkit-details-marker { display: none; }
 .popular summary:hover { background: var(--gray-50); color: var(--gray-900); }

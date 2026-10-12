@@ -262,7 +262,6 @@
     "customer": {
      "client_reference_id": "user-001",
      "full_name": "Priya Sharma",
-     "phone": "9911002211",
      "alpha_3_country_code": "IND"
     }
    },
@@ -293,14 +292,20 @@
    "alpha3": "MEX",
    "guide": "/guides/country-guides/mexico/overview",
    "address": [
-    "street"
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
    ],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
     "name": "José Hernández",
     "address": {
-     "street": "Paseo de la Reforma 505"
+     "street": "Paseo de la Reforma 505",
+     "city": "Ciudad de México",
+     "state_province": "CMX",
+     "postal_code": "06500"
     },
     "beneficiary": {
      "beneficiary_id_doc_number": "HEGJ900115HDFRNS09",
@@ -426,7 +431,6 @@
    "address": [
     "street",
     "city",
-    "state_province",
     "postal_code"
    ],
    "payin": null,
@@ -436,7 +440,6 @@
     "address": {
      "street": "12 Marina Boulevard",
      "city": "Singapore",
-     "state_province": "Singapore",
      "postal_code": "018982"
     },
     "beneficiary": {},
@@ -509,7 +512,8 @@
    "guide": "/guides/country-guides/united-kingdom/overview",
    "address": [
     "street",
-    "city"
+    "city",
+    "postal_code"
    ],
    "payin": null,
    "onboarding": "payout-only",
@@ -517,7 +521,8 @@
     "name": "Oliver Smith",
     "address": {
      "street": "10 Downing Street",
-     "city": "London"
+     "city": "London",
+     "postal_code": "SW1A 2AA"
     },
     "beneficiary": {},
     "ids": {
@@ -545,9 +550,7 @@
    "flag": "🇺🇸",
    "alpha3": "USA",
    "guide": "/guides/country-guides/united-states/overview",
-   "address": [
-    "street"
-   ],
+   "address": [],
    "payin": {
     "methods": [
      "ACH_PULL",
@@ -561,7 +564,6 @@
     "customer": {
      "client_reference_id": "user-001",
      "full_name": "Jane Doe",
-     "email": "jane@example.com",
      "dob": "1990-01-15",
      "alpha_3_country_code": "USA"
     }
@@ -570,7 +572,10 @@
    "sample": {
     "name": "John Smith",
     "address": {
-     "street": "350 Fifth Avenue"
+     "street": "350 Fifth Avenue",
+     "city": "New York",
+     "state_province": "NY",
+     "postal_code": "10118"
     },
     "beneficiary": {},
     "ids": {
@@ -589,7 +594,8 @@
       "account_number",
       "routing_number"
      ],
-     "beneficiary": []
+     "beneficiary": [],
+     "address": []
     },
     {
      "method": "RTP",
@@ -599,7 +605,13 @@
       "account_number",
       "routing_number"
      ],
-     "beneficiary": []
+     "beneficiary": [],
+     "address": [
+      "street",
+      "city",
+      "state_province",
+      "postal_code"
+     ]
     },
     {
      "method": "DOMESTIC_WIRE",
@@ -609,7 +621,10 @@
       "account_number",
       "routing_number"
      ],
-     "beneficiary": []
+     "beneficiary": [],
+     "address": [
+      "street"
+     ]
     },
     {
      "method": "FEDWIRE",
@@ -619,7 +634,10 @@
       "account_number",
       "routing_number"
      ],
-     "beneficiary": []
+     "beneficiary": [],
+     "address": [
+      "street"
+     ]
     },
     {
      "method": "WIRE",
@@ -629,7 +647,10 @@
       "account_number",
       "swift_code"
      ],
-     "beneficiary": []
+     "beneficiary": [],
+     "address": [
+      "street"
+     ]
     }
    ]
   }

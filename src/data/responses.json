@@ -7,7 +7,43 @@
       "is_mocked": true
     }
   },
-  "/kyc/add-kyc-data": {
+  "/kyc/configuration": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
+      "country": "IND",
+      "capabilities": [
+        "PAYOUT"
+      ],
+      "requirements": {
+        "PAYOUT": {
+          "kyc": {
+            "method": "DATA",
+            "fields": {
+              "tax_number": {
+                "required": false
+              }
+            }
+          },
+          "address_fields": [],
+          "bank": {
+            "default_method": "ACCOUNT_DETAILS",
+            "methods": {
+              "ACCOUNT_DETAILS": {
+                "identifiers": [
+                  "account_number",
+                  "ifsc"
+                ],
+                "beneficiary_identifiers": []
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/kyc/add-data": {
     "status": true,
     "message": "Success",
     "data": {
@@ -38,50 +74,7 @@
       "created_at": "2026-09-30T10:00:00+00:00"
     }
   },
-  "/kyc/remittance-beneficiary-kyc": {
-    "status": true,
-    "message": "Success",
-    "data": {
-      "id": "ea6899a3-abb9-4418-8878-e23f5021e38f",
-      "customer_id": "638d9a52-9427-460e-99ba-948d46ce349c"
-    }
-  },
-  "/kyc/payout/add-kyc-data": {
-    "status": true,
-    "message": "Success",
-    "data": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "status": "PROCESSING",
-      "failure_reason": null
-    }
-  },
-  "/kyc/payout/add-sender-kyc-data": {
-    "status": true,
-    "message": "Success",
-    "data": {
-      "id": "7a1c0e7e-2b53-4f7e-9d2f-6d6e2b1c9a10",
-      "client_reference_id": "beneficiary-001"
-    }
-  },
   "/bank/create": {
-    "status": true,
-    "message": "Success",
-    "data": {
-      "id": "4e6f1b20-a73c-11ec-b909-0242ac120002",
-      "customer_id": "550e8400-e29b-41d4-a716-446655440000",
-      "country": "IND",
-      "bank_account_type": "ACCOUNT_DETAILS",
-      "identifiers": {
-        "account_number": "7627389201",
-        "ifsc": "SBIN0001829"
-      },
-      "bank_account_status": "VERIFIED",
-      "beneficiary_name": "JOHN DOE",
-      "bank_name": "State Bank of India",
-      "failure_reason": null
-    }
-  },
-  "/bank/payout/create": {
     "status": true,
     "message": "Success",
     "data": {
@@ -305,23 +298,11 @@
       "type": "INDIVIDUAL",
       "status": "UNVERIFIED",
       "failure_reason": null,
-      "document_type": "AADHAAR"
-    }
-  },
-  "/customer/payout/create": {
-    "status": true,
-    "message": "Success",
-    "data": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "client_reference_id": "test123",
-      "full_name": "John Doe",
-      "email": "john.doe@example.com",
-      "phone": "+1234567890",
-      "country": "USA",
-      "type": "INDIVIDUAL",
-      "status": "UNVERIFIED",
-      "failure_reason": null,
-      "document_type": "AADHAAR"
+      "document_type": "AADHAAR",
+      "capabilities": [
+        "PAYIN",
+        "PAYOUT"
+      ]
     }
   },
   "/kyc/mock-kyc-status": {

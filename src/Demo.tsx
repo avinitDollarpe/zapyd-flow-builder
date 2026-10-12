@@ -151,10 +151,11 @@ function onboarding(u: User): JStep[] {
       phase: 'signup',
       kind: 'api',
       title: 'Create the customer',
-      text: `Once the phone is verified, your backend registers the user with Zapyd. Save the returned \`id\` as \`customer_id\`.${full ? '' : ' Payout-only onboarding must be enabled for your organization and the country.'}`,
+      text: `Once the phone is verified, your backend registers the user with Zapyd. Save the returned \`id\` as \`customer_id\`.${full ? '' : ' `capabilities: ["PAYOUT"]` makes a payout-only customer. Payout-only onboarding must be enabled for your organization and the country.'}`,
       method: 'POST',
-      path: full ? '/cms/api/v1/customer/create' : '/cms/api/v1/customer/payout/create',
+      path: '/cms/api/v1/customer/create',
       body: {
+        ...(full ? {} : { capabilities: ['PAYOUT'] }),
         client_reference_id: 'user-001',
         full_name: u.name,
         email: u.email,
@@ -205,12 +206,11 @@ function onboarding(u: User): JStep[] {
         ui: 'kyc-start',
         phase: 'kyc',
         kind: 'api',
-        title: 'Create the KYC profile',
-        text: 'Creates the user\'s payout KYC record. No documents are needed.',
-        method: 'POST',
-        path: '/cms/api/v1/kyc/payout/add-kyc-data',
-        body: { customer_id: ID.payer },
-        docs: '/api-reference-exchange/endpoint/kyc/payout-add-kyc-data',
+        title: 'Read the requirements',
+        text: 'Returns what to collect for the user\'s capabilities. No documents are needed.',
+        method: 'GET',
+        path: `/cms/api/v1/kyc/configuration/${ID.payer}`,
+        docs: '/api-reference-exchange/endpoint/kyc/configuration-{customer_id}',
       },
       {
         n: 0,
@@ -219,11 +219,11 @@ function onboarding(u: User): JStep[] {
         phase: 'kyc',
         kind: 'api',
         title: 'Add the address',
-        text: `${c.name} needs ${m.address.map((a) => `\`${a}\``).join(', ')}.`,
+        text: m.address.length ? `${c.name} needs ${m.address.map((a) => `\`${a}\``).join(', ')}.` : 'Some payout methods need the address.',
         method: 'POST',
-        path: '/cms/api/v1/kyc/payout/add-sender-kyc-data',
-        body: { client_reference_id: 'user-001', country_code: c.alpha3, ...m.sample!.address },
-        docs: '/api-reference-exchange/endpoint/kyc/payout-add-sender-kyc-data',
+        path: '/cms/api/v1/kyc/add-data',
+        body: { customer_id: ID.payer, ...m.sample!.address },
+        docs: '/api-reference-exchange/endpoint/kyc/add-data',
       },
       app('kyc-done', 'kyc-done', 'kyc', 'Ready for payouts', 'The user can now receive payouts. They never upload a document.'),
     )
@@ -262,7 +262,7 @@ function transfer(o: Opts, u: User): { flow?: Flow; steps: JStep[] } {
     // A call with no screen of its own (the balance check, a KYC call with
     // nothing to type) runs right after the step before it.
     const prev = steps[steps.length - 1]
-    const silent = s.kind === 'api' && (s.id === 'payout-balance' || (s.id === 'ben-kyc' && !fields((st.body ?? {}) as Json).length))
+    const silent = s.kind === 'api' && (s.id === 'payout-balance' || s.id === 'ben-config' || (s.id === 'ben-kyc' && !fields((st.body ?? {}) as Json).length))
     if (prev && silent) {
       prev.also = [...(prev.also ?? []), st]
       prev.text += ` Then calls \`${s.path!.replace(/^\/\w+\/api\/v1/, '')}\`: ${s.text}`
@@ -315,7 +315,7 @@ interface Ctx {
 // backend fills in. They still appear in the request on the right.
 const HIDDEN = new Set([
   'customer_id', 'bank_id', 'remitter_id', 'quotation_id', 'client_reference_id', 'redirect_url', 'risk_parameters', 'customer',
-  'asset', 'fiat', 'network', 'payment_method', 'bank_account_type', 'is_self_transfer', 'transfer_purpose', 'transaction_hash',
+  'asset', 'fiat', 'network', 'payment_method', 'bank_account_type', 'is_self_transfer', 'transaction_hash', 'capabilities',
   'selfie_url', 'registered_date', 'alpha_3_country_code', 'country_code', 'document_type', 'nationality', 'residence_country', 'source_of_funds', 'id_type',
 ])
 const WORD: Record<string, string> = {
@@ -360,7 +360,7 @@ function request(st: Step, edits: Record<string, string> = {}, hash = ''): Json 
 // ---------------------------------------------------------------- responses
 
 function respond(st: Step, body: Json = {}, c: Ctx): Json {
-  const path = st.path!.replace(/^\/\w+\/api\/v1/, '')
+  const path = st.path!.replace(/^\/\w+\/api\/v1/, '').replace(/^\/kyc\/configuration\/.*/, '/kyc/configuration')
   const res = structuredClone((RESPONSES as Record<string, Json>)[path])
   const d: Json = res.data
   const payin = path.startsWith('/payin')
@@ -434,7 +434,7 @@ function respond(st: Step, body: Json = {}, c: Ctx): Json {
   if (path === '/kyc/generate-link') d.url = `https://app.zapyd.com/kyc?kyc_id=${crypto.randomUUID()}`
 
   if (path === '/kyc/mock-kyc-status') d.status = body.kyc_status
-  d.id = st.returns ?? (path.endsWith('add-kyc-data') || path === '/kyc/mock-kyc-status' ? body.customer_id : crypto.randomUUID())
+  d.id = st.returns ?? (path.endsWith('add-data') || path === '/kyc/mock-kyc-status' ? body.customer_id : crypto.randomUUID())
   return res
 }
 
@@ -503,8 +503,9 @@ function copy(st: Step, c: Ctx): Copy {
     case 'ben-create':
       return { title: sm ? 'Who are you sending to?' : 'Who gets the money?', sub: `The holder of the bank account in ${dm!.country}.`, cta: 'Continue' }
     case 'ben-kyc':
-      if (st.path?.includes('remittance')) return { title: 'Recipient check', sub: 'A light check on the person receiving the money.', cta: 'Submit' }
-      if (st.path?.includes('/payout/')) return { title: 'Recipient profile', sub: 'No documents needed.', cta: 'Continue' }
+      if (st.method === 'GET') return { title: 'Recipient profile', sub: 'No documents needed.', cta: 'Continue' }
+      if ((st.body as Json)?.income_range) return { title: 'PAN, income and profession', sub: 'Required to receive payouts in India. No documents needed.', cta: 'Continue' }
+      if (st.path?.endsWith('/kyc/add-data') && !(st.body as Json)?.selfie_url) return { title: 'Recipient check', sub: 'A light check on the person receiving the money.', cta: 'Submit' }
       return verify("the recipient's")
     case 'ben-address':
       return { title: 'Recipient address', cta: 'Continue' }
