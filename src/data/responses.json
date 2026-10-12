@@ -103,6 +103,8 @@
     "status": true,
     "message": "Success",
     "data": {
+      "wallet_address": "TQ5NQvxrJ3W4bGMMk9mWyuKq2aDbDqvXyZ",
+      "network": "tron",
       "available_balance": {
         "USDT": "15000.5"
       }
@@ -159,67 +161,6 @@
       "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
       "transaction_hash": "0x9f2c\u2026",
       "created_at": "2026-09-30T10:00:00Z"
-    }
-  },
-  "/prefunded/payout/quotation": {
-    "status": true,
-    "message": "Success",
-    "data": {
-      "id": "59bf60c3-e9af-40a7-9d5c-2a1aa191e769",
-      "customer_id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4",
-      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
-      "asset": "USDT",
-      "fiat": "INR",
-      "network": "tron",
-      "sending_amount": "60.00",
-      "rate": "85.00",
-      "receiving_amount": "5100.00",
-      "fees": {
-        "zapyd_fee": "0.00",
-        "client_fee": "0.00",
-        "client_gst": "0.00",
-        "tds": "0"
-      },
-      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
-      "created_at": "2026-09-30T10:00:00Z",
-      "expiry_time": "2026-09-30T10:10:00Z"
-    }
-  },
-  "/prefunded/payout/initiate": {
-    "status": true,
-    "message": "Success",
-    "data": {
-      "id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
-      "quotation_id": "59bf60c3-e9af-40a7-9d5c-2a1aa191e769",
-      "bank_id": "cab47575-bbcb-4294-81a3-30774104f3b6",
-      "asset": "USDT",
-      "network": "tron",
-      "fiat": "INR",
-      "rate": "85.00",
-      "sending_amount": "60.00",
-      "receiving_amount": "5100.00",
-      "client_reference_id": "payout-ref-001",
-      "fees": {
-        "zapyd_fee": "0.00",
-        "client_fee": "0.00",
-        "client_gst": "0.00",
-        "tds": "0"
-      },
-      "status": "PROCESSING",
-      "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
-      "transaction_hash": "0x9f2c\u2026",
-      "utr": "412345678901",
-      "failure_reason": null,
-      "updated_at": "2026-09-30T10:05:00Z",
-      "created_at": "2026-09-30T10:00:00Z",
-      "customer": {
-        "sender": {
-          "id": "1b2c3d4e-5f60-4a7b-8c9d-0e1f2a3b4c5d"
-        },
-        "receiver": {
-          "id": "84737c7d-7b62-4204-80d6-80f6ecb3ceb4"
-        }
-      }
     }
   },
   "/payin/quotation": {

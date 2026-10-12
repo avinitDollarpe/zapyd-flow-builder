@@ -54,6 +54,7 @@ assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'payout',
 assert.equal(normalize({ ...DEFAULTS, src: 'USDT', dst: 'INR', purpose: 'remittance' }).purpose, 'payout')
 const pre = build(normalize({ ...DEFAULTS, src: 'USDT', dst: 'MXN', funding: 'prefunded' }))
 assert('steps' in pre && !pre.steps.some((s) => (s.body as Record<string, unknown>)?.transaction_hash))
+assert('steps' in pre && !pre.steps.some((s) => s.path?.includes('/prefunded/')))
 assert('unsupported' in build(normalize({ ...DEFAULTS, src: 'USDT', dst: 'USDC' })))
 
 console.log(`ok: ${flows} flows`)

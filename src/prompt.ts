@@ -47,7 +47,7 @@ function sandbox(st: Step, flow: Flow): string | undefined {
     case 'payin-success':
       return 'set it with `PATCH /pis/api/v1/payin/mock-payin-status` `{"payin_id": "...", "payin_status": "SUCCESS"}`. Test `FAILED`, `ON_HOLD` and `REFUNDED` too.'
     case 'payout-quote':
-      return st.path?.includes('/prefunded/') ? undefined : 'quote on `network: "sepolia"` to get a testnet `wallet_address`.'
+      return flow.steps.some((s) => s.id === 'payout-balance') ? undefined : 'quote on `network: "sepolia"` to get a testnet `wallet_address`.'
     case 'payout-send':
       return 'send testnet USDT or USDC on Sepolia (get Sepolia ETH for gas from a faucet). Never send real funds to a sandbox address.'
     case 'payout-success':
@@ -122,7 +122,7 @@ export function prompt(flow: Flow) {
   if (payout)
     out.push(
       '- `PAYOUT` `IN_REVIEW`: send the user to `metadata.rfi_link` when present, otherwise wait. `FAILED` and `REFUNDED` are final; the reason is always the generic `Payout failed`. No webhook is sent for `PROCESSING`.',
-      `- On a timeout or 5xx from the payout initiate call, look the payout up in ${prefunded && !rda ? '`GET /pos/api/v1/prefunded/payout/history`' : '`GET /pos/api/v1/payout/history`'} before retrying${prefunded ? '' : ': a hash that already funded a payout is rejected'}.`,
+      `- On a timeout or 5xx from the payout initiate call, look the payout up in \`GET /pos/api/v1/payout/history\` before retrying${prefunded ? '' : ': a hash that already funded a payout is rejected'}.`,
     )
 
   out.push(

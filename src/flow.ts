@@ -891,12 +891,12 @@ export function build(o: Opts): Flow | { unsupported: string } {
         bank_id: ID.bank,
         asset: asset.toLowerCase(),
         fiat: fiatLower,
-        ...(prefunded ? {} : { network: o.network }),
+        network: o.network,
         payment_method: paymentMethod,
         sending_amount: '60',
         risk_parameters: RISK,
       }
-  const quotePath = rda ? '/pos/api/v1/remittance-payout/quotation' : prefunded ? '/pos/api/v1/prefunded/payout/quotation' : '/pos/api/v1/payout/quotation'
+  const quotePath = rda ? '/pos/api/v1/remittance-payout/quotation' : '/pos/api/v1/payout/quotation'
   const rows: Row[] = []
   rows.push(
     step('file-invoice', {
@@ -908,11 +908,8 @@ export function build(o: Opts): Flow | { unsupported: string } {
         rda ? 'Send exactly one amount: `receiving_amount` fixes the INR the beneficiary gets, `sending_amount` fixes the crypto.' : '',
         d.fiat === 'INR'
           ? ''
-          : prefunded
-            ? `\`payment_method\` is the bank account's method (\`${paymentMethod}\`). [\`GET /pos/api/v1/prefunded/payout/configuration\`](${DOCS}/api-reference-exchange/endpoint/prefunded-payout/configuration) lists the methods and limits for ${d.fiat}.`
-            : `\`payment_method\` is the bank account's method (\`${paymentMethod}\`). [\`GET /pos/api/v1/payout/configuration\`](${DOCS}/api-reference-exchange/endpoint/payout/config/configuration) lists the methods and limits for ${d.fiat}.`,
-        prefunded && !rda ? '`network` is ignored: the quotation uses your prefunded wallet\'s network.' : '',
-        prefunded && rda ? '`network` must match your prefunded wallet\'s network.' : '',
+          : `\`payment_method\` is the bank account's method (\`${paymentMethod}\`). [\`GET /pos/api/v1/payout/configuration\`](${DOCS}/api-reference-exchange/endpoint/payout/config/configuration) lists the methods and limits for ${d.fiat}.`,
+        prefunded ? '`network` must be your prefunded wallet\'s `network` from `GET /pos/api/v1/payout/balance`.' : '',
         prefunded ? '' : 'The response has the `wallet_address` to fund and `expiry_time`.',
       ]
         .filter(Boolean)
@@ -920,11 +917,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
       method: 'POST',
       path: quotePath,
       body: quoteBody,
-      docs: rda
-        ? '/api-reference-exchange/endpoint/remittance-payout/quotation'
-        : prefunded
-          ? '/api-reference-exchange/endpoint/prefunded-payout/quotation'
-          : '/api-reference-exchange/endpoint/payout/quotation/quotation',
+      docs: rda ? '/api-reference-exchange/endpoint/remittance-payout/quotation' : '/api-reference-exchange/endpoint/payout/quotation/quotation',
     }, 'Create quotation'),
   )
   if (prefunded)
@@ -936,7 +929,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
         text: `Compare the quotation's \`sending_amount\` with \`available_balance.${asset}\`. Top up first if it's too low.`,
         method: 'GET',
         path: '/pos/api/v1/payout/balance',
-        docs: '/api-reference-exchange/endpoint/remittance-payout/balance',
+        docs: '/api-reference-exchange/endpoint/payout/config/balance',
       }),
     )
   else
@@ -962,31 +955,24 @@ export function build(o: Opts): Flow | { unsupported: string } {
         client_reference_id: 'remit-001',
         ...(prefunded ? {} : { transaction_hash: '0x9f2c3b1a...' }),
       }
-    : prefunded
-      ? {
-          quotation_id: ID.payoutQuote,
-          customer: { sender: { id: payin ? ID.payer : beneficiaryId }, receiver: { id: beneficiaryId } },
-          client_reference_id: 'payout-001',
-        }
-      : { quotation_id: ID.payoutQuote, customer_id: beneficiaryId, client_reference_id: 'payout-001', transaction_hash: '0x9f2c3b1a...' }
+    : {
+        quotation_id: ID.payoutQuote,
+        customer_id: beneficiaryId,
+        client_reference_id: 'payout-001',
+        ...(prefunded ? {} : { transaction_hash: '0x9f2c3b1a...' }),
+      }
   rows.push(
       step('arrow-up', {
         id: 'payout-initiate',
         kind: 'api',
         title: rda ? 'Initiate the cross-border payout' : 'Initiate the payout',
         text: prefunded
-          ? rda
-            ? 'Initiate without a hash. Zapyd reserves the amount from your balance.'
-            : `\`receiver.id\` must be the quotation's customer. \`sender.id\` is the customer who starts the transfer and pays for it: ${payin ? 'the customer whose payin funded it' : 'here the beneficiary, cashing out to their own account'}. Zapyd reserves the amount from your balance.`
+          ? 'Initiate without a `transaction_hash`. Zapyd reserves the amount from your balance. The payout starts as `PROCESSING`.'
           : 'Send the `transaction_hash` of your transfer. The payout starts as `PROCESSING`.',
         method: 'POST',
-        path: rda ? '/pos/api/v1/remittance-payout/initiate' : prefunded ? '/pos/api/v1/prefunded/payout/initiate' : '/pos/api/v1/payout/initiate',
+        path: rda ? '/pos/api/v1/remittance-payout/initiate' : '/pos/api/v1/payout/initiate',
         body: initBody,
-        docs: rda
-          ? '/api-reference-exchange/endpoint/remittance-payout/initiate'
-          : prefunded
-            ? '/api-reference-exchange/endpoint/prefunded-payout/initiate'
-            : '/api-reference-exchange/endpoint/payout/order/initiate',
+        docs: rda ? '/api-reference-exchange/endpoint/remittance-payout/initiate' : '/api-reference-exchange/endpoint/payout/order/initiate',
       }),
       step(
         'bell',
