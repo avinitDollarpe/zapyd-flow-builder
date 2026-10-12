@@ -133,7 +133,7 @@ export function choices(o: Opts): Choices {
 
 // The two payout APIs for fiat to INR.
 export const INDIA_API: { value: Opts['purpose']; label: string; sub: string }[] = [
-  { value: 'payout', label: 'Normal', sub: 'Normal payout: PAYOUT beneficiary with income range and profession' },
+  { value: 'payout', label: 'Standard', sub: 'Standard payout: PAYOUT beneficiary with PAN, income range and profession' },
   { value: 'remittance', label: 'Remittance', sub: 'Remittance payout (RDA): REMITTANCE_PAYOUT beneficiary and a remitter abroad' },
 ]
 
