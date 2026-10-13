@@ -663,6 +663,16 @@ export function build(o: Opts): Flow | { unsupported: string } {
         title: 'Bank account',
         tag: { label: rail.method, tone: 'gray' },
         rows: [
+          step('shield', {
+            id: 'bank-validate',
+            kind: 'api',
+            title: 'Check the account',
+            text: 'Optional. Asks the bank whether the account can receive money, before anything is stored. `VALID` returns the name the bank holds for the user to confirm; ask for another account when it\'s `INVALID` or `country_details.is_non_resident_account` is `true`. Each call runs a penny drop, so call it once on submit.',
+            method: 'POST',
+            path: '/cms/api/v1/bank/validate',
+            body: { country: 'IND', bank_account_type: rail.method, identifiers: rail.identifiers },
+            docs: '/api-reference-exchange/endpoint/bank/validate',
+          }),
           step('landmark', {
             id: 'bank-create',
             returns: ID.bank,

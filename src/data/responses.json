@@ -92,6 +92,19 @@
       "failure_reason": null
     }
   },
+  "/bank/validate": {
+    "status": true,
+    "message": "Success",
+    "data": {
+      "country": "IND",
+      "status": "VALID",
+      "account_holder_name": "PRIYA SHARMA",
+      "reason": null,
+      "country_details": {
+        "is_non_resident_account": false
+      }
+    }
+  },
   "/payout/balance": {
     "status": true,
     "message": "Success",

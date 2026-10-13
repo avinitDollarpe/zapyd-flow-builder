@@ -262,7 +262,8 @@ function transfer(o: Opts, u: User): { flow?: Flow; steps: JStep[] } {
     // A call with no screen of its own (the balance check, a KYC call with
     // nothing to type) runs right after the step before it.
     const prev = steps[steps.length - 1]
-    const silent = s.kind === 'api' && (s.id === 'payout-balance' || s.id === 'ben-config' || (s.id === 'ben-kyc' && !fields((st.body ?? {}) as Json).length))
+    // Bank account: the user types it once on the check screen, then it's added.
+    const silent = s.kind === 'api' && (s.id === 'payout-balance' || s.id === 'ben-config' || (s.id === 'bank-create' && prev?.id === 'bank-validate') || (s.id === 'ben-kyc' && !fields((st.body ?? {}) as Json).length))
     if (prev && silent) {
       prev.also = [...(prev.also ?? []), st]
       prev.text += ` Then calls \`${s.path!.replace(/^\/\w+\/api\/v1/, '')}\`: ${s.text}`
@@ -509,6 +510,8 @@ function copy(st: Step, c: Ctx): Copy {
       return verify("the recipient's")
     case 'ben-address':
       return { title: 'Recipient address', cta: 'Continue' }
+    case 'bank-validate':
+      return { title: 'Bank account', sub: `${railName(o.rail)} in ${dm!.country}. Checked with the bank before it's saved.`, cta: 'Check and add' }
     case 'bank-create':
       return { title: 'Bank account', sub: `${railName(o.rail)} in ${dm!.country}.`, cta: 'Add account' }
     case 'bank-verified':

@@ -68,6 +68,8 @@ assert('steps' in po && po.steps.some((s) => JSON.stringify(s.body ?? {}).includ
 assert('steps' in po && po.steps.some((s) => (s.body as Record<string, unknown>)?.income_range && (s.body as Record<string, unknown>)?.tax_number))
 const rem = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'INR', purpose: 'remittance' }))
 assert('steps' in rem && rem.steps.some((s) => s.path?.endsWith('/remittance-payout/initiate')))
+// India checks the account with the bank before adding it.
+for (const f of [po, rem]) assert('steps' in f && f.steps.findIndex((s) => s.id === 'bank-validate') === f.steps.findIndex((s) => s.id === 'bank-create') - 1)
 assert('steps' in rem && !rem.steps.some((s) => (s.body as Record<string, unknown>)?.income_range))
 assert('steps' in rem && rem.steps.some((s) => JSON.stringify(s.body ?? {}).includes('"capabilities":["REMITTANCE_PAYOUT"]')))
 assert('steps' in rem && rem.steps.some((s) => s.path?.endsWith('/kyc/add-data') && JSON.stringify(s.body) === JSON.stringify({ customer_id: s.body && (s.body as Record<string, unknown>).customer_id })))
