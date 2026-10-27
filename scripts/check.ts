@@ -94,9 +94,9 @@ assert('steps' in vn && !vn.steps.some((s) => s.id === 'bank-verified'))
 // Every bank account is verified: the BANK webhook follows bank/create.
 for (const f of [po, rem, mx, pre]) assert('steps' in f && f.steps.findIndex((s) => s.id === 'bank-verified') === f.steps.findIndex((s) => s.id === 'bank-create') + 1)
 
-// The Rates page lights every supported market: its market list (the published rate card) carries every currency in markets.json.
+// The Rates page lights exactly the supported markets: its market list carries the same currencies as markets.json.
 const ratesSrc = readFileSync(new URL('../public/rates/core.js', import.meta.url), 'utf8')
-const ratesFiats = new Set([...ratesSrc.matchAll(/^\s*M\('[A-Z]{2}', '[^']*', '([A-Z]{3})'/gm)].map((m) => m[1]))
-for (const m of MARKETS) assert(ratesFiats.has(m.fiat), `public/rates/core.js has no market for ${m.fiat} from src/data/markets.json`)
+const ratesFiats = [...ratesSrc.matchAll(/^\s*M\('[A-Z]{2}', '[^']*', '([A-Z]{3})'/gm)].map((m) => m[1]).sort()
+assert.deepEqual(ratesFiats, MARKETS.map((m) => m.fiat).sort(), 'public/rates/core.js markets differ from src/data/markets.json')
 
 console.log(`ok: ${flows} flows`)

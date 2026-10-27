@@ -2,21 +2,15 @@
 (() => {
 const Z = window.Z = {}
 
-// ── Markets. Methods (rate, fee, speed, limit and history each) come from the rate card API; a placeholder until it loads
+// ── Markets Zapyd supports. Methods (rate, fee, speed, limit and history each) come from the rate card API; a placeholder until it loads
 const M = (key, name, cur, region, flag, lat, lon, extra = {}) => ({ key, name, cur, region, flag, lat, lon, mid: 0, dp: 2,
   methods: [{ key: key + 0, name: '–', rate: '', fee: '–', speed: '–', limit: '–', mid: 0, dp: 2 }], ...extra })
 Z.MARKETS = [
   M('IN', 'India', 'INR', 'Asia Pacific', 'in', 22, 79),
   M('CN', 'China', 'CNY', 'Asia Pacific', 'cn', 33, 104),
   M('HK', 'Hong Kong', 'HKD', 'Asia Pacific', 'hk', 22.3, 114.2),
-  M('PK', 'Pakistan', 'PKR', 'Asia Pacific', 'pk', 30, 69.3),
-  M('BD', 'Bangladesh', 'BDT', 'Asia Pacific', 'bd', 23.7, 90.4),
-  M('ID', 'Indonesia', 'IDR', 'Asia Pacific', 'id', -2.5, 118),
-  M('TH', 'Thailand', 'THB', 'Asia Pacific', 'th', 15.5, 101),
-  M('MY', 'Malaysia', 'MYR', 'Asia Pacific', 'my', 4.2, 102),
   M('SG', 'Singapore', 'SGD', 'Asia Pacific', 'sg', 1.35, 103.8),
   M('VN', 'Vietnam', 'VND', 'Asia Pacific', 'vn', 14, 108.3),
-  M('JP', 'Japan', 'JPY', 'Asia Pacific', 'jp', 36.5, 138.5),
   M('PH', 'Philippines', 'PHP', 'Asia Pacific', 'ph', 12.5, 122),
   M('EU', 'Euro area', 'EUR', 'Europe', 'eu', 51, 10.5, { note: '20 countries' }),
   M('GB', 'United Kingdom', 'GBP', 'Europe', 'gb', 53, -1.5),
@@ -26,9 +20,6 @@ Z.MARKETS = [
   M('CO', 'Colombia', 'COP', 'Americas', 'co', 4, -73),
   M('AE', 'UAE', 'AED', 'Middle East', 'ae', 23.9, 54.5),
   M('NG', 'Nigeria', 'NGN', 'Africa', 'ng', 9, 8),
-  M('KE', 'Kenya', 'KES', 'Africa', 'ke', 0.2, 37.9),
-  M('UG', 'Uganda', 'UGX', 'Africa', 'ug', 1.4, 32.3),
-  M('TZ', 'Tanzania', 'TZS', 'Africa', 'tz', -6.4, 34.9),
 ]
 Z.BY = Object.fromEntries(Z.MARKETS.map(m => [m.key, m]))
 Z.REGIONS = ['Asia Pacific', 'Europe', 'Americas', 'Middle East', 'Africa']

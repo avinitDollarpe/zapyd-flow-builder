@@ -44,7 +44,7 @@ npm run build    # type-check and build to dist/
 The docs are the source of truth for API shapes and product rules; this app mirrors them.
 
 - **Payout rails and samples** in `src/data/markets.json` mirror `scripts/gen-country-guides.py` in the docs repo. Change both together.
-- **Markets on the Rates page:** the `M(...)` list in `public/rates/core.js` follows Nova's rate card (`PUBLIC_RATE_CARD`, the "Platform - API Rates" sheet), so it can list more markets than `src/data/markets.json`. When a country joins or leaves the card, change the `M(...)` list and `COVER` in `scripts/gen-dots.py`, then regenerate `public/rates/dots.js`. `npm run check` fails when a market in `src/data/markets.json` is missing from the Rates page.
+- **Supported markets on the Rates page:** the Rates page shows only the markets Zapyd supports, the same as `src/data/markets.json` and Nova's rate card (`PUBLIC_RATE_CARD`). When a market is added to or removed from `src/data/markets.json`, change the `M(...)` list in `public/rates/core.js` and `COVER` in `scripts/gen-dots.py`, then regenerate `public/rates/dots.js`. `npm run check` fails when the two market lists differ.
 - **Responses** in `src/data/responses.json` are copied from the response examples in the docs repo's `api-reference-exchange/endpoint/*/apiEndpoints.json`. Copy them again when a response shape changes.
 - **Status codes:** payin and payout `quotation` and `initiate` (`POST /pis/…` and `/pos/…`) answer `201 Created`; every other call answers `200 OK` (`httpStatus` in `src/Demo.tsx`).
 - **Agent prompt:** the signing and webhook rules in `src/prompt.ts` match `scripts/gen-endpoint-prompts.py` and `guides/getting-started/build-with-ai.mdx` in the docs repo.

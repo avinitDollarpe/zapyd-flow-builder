@@ -20,8 +20,7 @@ src = json.load(open(sys.argv[1]))
 EURO = "AUT BEL HRV CYP EST FIN FRA DEU GRC IRL ITA LVA LTU LUX MLT NLD PRT SVK SVN ESP".split()
 # Supported markets: keep in step with src/data/markets.json and the market list in public/rates/core.js
 COVER = {"USA": "US", "IND": "IN", "CHN": "CN", "HKG": "HK", "SGP": "SG", "VNM": "VN", "PHL": "PH", "GBR": "GB", "MEX": "MX", "BRA": "BR",
-         "COL": "CO", "ARE": "AE", "NGA": "NG", "PAK": "PK", "BGD": "BD", "IDN": "ID", "THA": "TH", "MYS": "MY",
-         "JPN": "JP", "KEN": "KE", "UGA": "UG", "TZA": "TZ", **{k: "EU" for k in EURO}}
+         "COL": "CO", "ARE": "AE", "NGA": "NG", **{k: "EU" for k in EURO}}
 KEYS = sorted(set(COVER.values()))
 CH = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 code = {k: CH[i] for i, k in enumerate(KEYS)}
