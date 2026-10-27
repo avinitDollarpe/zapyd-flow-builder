@@ -76,6 +76,24 @@ assert('steps' in rem && rem.steps.some((s) => JSON.stringify(s.body ?? {}).incl
 assert('steps' in rem && rem.steps.some((s) => s.path?.endsWith('/kyc/add-data') && JSON.stringify(s.body) === JSON.stringify({ customer_id: s.body && (s.body as Record<string, unknown>).customer_id })))
 for (const f of [po, rem]) assert('steps' in f && !f.steps.some((s) => (s.body as Record<string, unknown>)?.client_reference_id && s.id !== 'ben-create'))
 
+// Remittance payouts work in every market. Outside India the sender is the
+// customer who paid in, so the option needs a fiat source.
+const mx = build(normalize({ ...DEFAULTS, src: 'USD', dst: 'MXN', purpose: 'remittance' }))
+assert('steps' in mx && mx.steps.some((s) => s.path === '/pos/api/v1/remittance-payout/initiate'))
+assert('steps' in mx && mx.steps.some((s) => JSON.stringify(s.body ?? {}).includes('"capabilities":["REMITTANCE_PAYOUT"]')))
+assert('steps' in mx && !mx.steps.some((s) => s.id === 'remitter-create'))
+const payerId = 'steps' in mx ? mx.steps.find((s) => s.id === 'payer-create')?.returns : undefined
+assert('steps' in mx && mx.steps.filter((s) => (s.body as Record<string, unknown>)?.remitter_id).every((s) => (s.body as Record<string, unknown>).remitter_id === payerId))
+assert.equal(normalize({ ...DEFAULTS, src: 'USDC', dst: 'MXN', purpose: 'remittance' }).purpose, 'payout')
+// Vietnam: the remittance sender is a Create Remitter remitter, from any source,
+// and the account is VERIFIED in the bank/create response.
+const vn = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'VND', purpose: 'remittance' }))
+assert('steps' in vn && vn.steps.some((s) => s.id === 'remitter-create'))
+assert('steps' in vn && vn.steps.filter((s) => (s.body as Record<string, unknown>)?.remitter_id).every((s) => (s.body as Record<string, unknown>).remitter_id === vn.steps.find((x) => x.id === 'remitter-create')?.returns))
+assert('steps' in vn && !vn.steps.some((s) => s.id === 'bank-verified'))
+// Every bank account is verified: the BANK webhook follows bank/create.
+for (const f of [po, rem, mx, pre]) assert('steps' in f && f.steps.findIndex((s) => s.id === 'bank-verified') === f.steps.findIndex((s) => s.id === 'bank-create') + 1)
+
 // The Rates page lights every supported market: its market list (the published rate card) carries every currency in markets.json.
 const ratesSrc = readFileSync(new URL('../public/rates/core.js', import.meta.url), 'utf8')
 const ratesFiats = new Set([...ratesSrc.matchAll(/^\s*M\('[A-Z]{2}', '[^']*', '([A-Z]{3})'/gm)].map((m) => m[1]))

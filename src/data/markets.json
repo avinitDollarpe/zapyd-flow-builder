@@ -653,6 +653,51 @@
      ]
     }
    ]
+  },
+  {
+   "fiat": "VND",
+   "currency": "Vietnamese Dong",
+   "country": "Vietnam",
+   "flag": "🇻🇳",
+   "alpha3": "VNM",
+   "guide": "/guides/country-guides/geographies",
+   "address": [
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
+   ],
+   "payin": null,
+   "onboarding": "payout-only",
+   "sample": {
+    "name": "Nguyen Minh Anh",
+    "address": {
+     "street": "12 Le Loi, Ben Nghe Ward",
+     "city": "Ho Chi Minh City",
+     "state_province": "Ho Chi Minh",
+     "postal_code": "70000"
+    },
+    "beneficiary": {},
+    "ids": {
+     "account_holder_name": "NGUYEN MINH ANH",
+     "account_number": "19031234567890",
+     "bank_name": "Techcombank",
+     "bank_code": "970407"
+    }
+   },
+   "rails": [
+    {
+     "method": "ACCOUNT_DETAILS",
+     "payment_method": "BANK_TRANSFER",
+     "identifiers": [
+      "account_holder_name",
+      "account_number",
+      "bank_name",
+      "bank_code"
+     ],
+     "beneficiary": []
+    }
+   ]
   }
  ],
  "stablecoins": [

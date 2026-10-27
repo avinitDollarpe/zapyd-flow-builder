@@ -15,7 +15,7 @@ import {
   HOST,
   ID,
   NETWORKS,
-  INDIA_API,
+  PAYOUT_API,
   OFFERED_COINS,
   build,
   choices,
@@ -62,6 +62,7 @@ const COUNTRIES: Country[] = [
   { iso2: 'hk', name: 'Hong Kong', dial: '+852', fiat: 'HKD', alpha3: 'HKG', sample: '5123 4567' },
   { iso2: 'cn', name: 'China', dial: '+86', fiat: 'CNY', alpha3: 'CHN', sample: '131 2345 6789' },
   { iso2: 'ph', name: 'Philippines', dial: '+63', fiat: 'PHP', alpha3: 'PHL', sample: '917 123 4567' },
+  { iso2: 'vn', name: 'Vietnam', dial: '+84', fiat: 'VND', alpha3: 'VNM', sample: '912 345 678' },
   { iso2: 'ng', name: 'Nigeria', dial: '+234', fiat: 'NGN', alpha3: 'NGA', sample: '802 123 4567' },
   { iso2: 'mx', name: 'Mexico', dial: '+52', fiat: 'MXN', alpha3: 'MEX', sample: '55 1234 5678' },
   { iso2: 'br', name: 'Brazil', dial: '+55', fiat: 'BRL', alpha3: 'BRA', sample: '11 91234 5678' },
@@ -82,7 +83,7 @@ interface User {
 const NEW_USER: User = { name: 'Chakravarti Avinit', email: 'avinit@zapyd.com', country: COUNTRIES[0], phone: COUNTRIES[0].sample }
 
 // Countries whose currency has payins get full KYC through the hosted flow;
-// the rest use payout-only onboarding (an address, no documents).
+// the rest are created without PAYIN and send KYC data (an address, no documents).
 const fullKyc = (c: Country) => !!market(c.fiat)?.payin
 // The preview offers USDT next to USDC; the Flow Builder's pickers stay on USDC.
 const COINS = [...OFFERED_COINS, 'USDT']
@@ -139,11 +140,12 @@ const MOCK_KYC: Step = {
 function onboarding(u: User): JStep[] {
   const c = u.country
   const full = fullKyc(c)
-  const phone = `${c.dial}${u.phone.replace(/\D/g, '')}`
+  // Horizon takes the national number; the response adds the dial code.
+  const phone = u.phone.replace(/\D/g, '')
   const steps: JStep[] = [
     app('signup', 'signup', 'signup', 'Name and email', 'Your app collects these. Nothing is sent to Zapyd yet.'),
     app('email-otp', 'email-otp', 'signup', 'Verify the email', 'Your app sends and checks this code. Zapyd isn\'t involved.'),
-    app('phone', 'phone', 'signup', 'Phone number', `The phone's country is the user's KYC country. ${c.name} ${full ? 'runs full KYC through the hosted flow' : 'uses payout-only onboarding'}.`),
+    app('phone', 'phone', 'signup', 'Phone number', `The phone's country is the user's KYC country. ${c.name} ${full ? 'runs full KYC through the hosted flow' : 'receives payouts only, so the user sends KYC data instead of documents'}.`),
     {
       n: 0,
       id: 'payer-create',
@@ -151,7 +153,7 @@ function onboarding(u: User): JStep[] {
       phase: 'signup',
       kind: 'api',
       title: 'Create the customer',
-      text: `Once the phone is verified, your backend registers the user with Zapyd. Save the returned \`id\` as \`customer_id\`.${full ? '' : ' `capabilities: ["PAYOUT"]` makes a payout-only customer. Payout-only onboarding must be enabled for your organization and the country.'}`,
+      text: `Once the phone is verified, your backend registers the user with Zapyd. Save the returned \`id\` as \`customer_id\`.${full ? '' : ' `capabilities: ["PAYOUT"]` skips the KYC journey: the customer sends only the fields for its country. Payouts to the country must be enabled for your organization.'}`,
       method: 'POST',
       path: '/cms/api/v1/customer/create',
       body: {
@@ -164,7 +166,7 @@ function onboarding(u: User): JStep[] {
         ...(c.fiat === 'USD' ? { dob: '1990-01-15' } : {}),
       },
       returns: ID.payer,
-      docs: full ? '/api-reference-exchange/endpoint/customer/create' : '/guides/customers/payout-only-onboarding',
+      docs: full ? '/api-reference-exchange/endpoint/customer/create' : '/guides/customers/payout-requirements',
     },
   ]
   if (full) {
@@ -276,7 +278,7 @@ function transfer(o: Opts, u: User): { flow?: Flow; steps: JStep[] } {
 
 // ponytail: indicative USD rates so quotes look right; not live. Fine for a demo.
 const RATE: Record<string, number> = {
-  USD: 1, INR: 88.2, MXN: 18.35, BRL: 5.32, EUR: 0.857, GBP: 0.745, COP: 3870, PHP: 57.9, NGN: 1480, SGD: 1.29, AED: 3.6725, HKD: 7.78, CNY: 7.12,
+  USD: 1, INR: 88.2, MXN: 18.35, BRL: 5.32, EUR: 0.857, GBP: 0.745, COP: 3870, PHP: 57.9, NGN: 1480, SGD: 1.29, AED: 3.6725, HKD: 7.78, CNY: 7.12, VND: 25900,
 }
 const WALLET: Record<string, string> = {
   tron: 'TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf',
@@ -432,6 +434,7 @@ function respond(st: Step, body: Json = {}, c: Ctx): Json {
     d.created_at = now().replace('Z', '+00:00')
   }
   if (path === '/payout/balance') d.available_balance = { [c.asset]: '15000.50' }
+  if (path === '/customer/create' && body.phone) d.phone = `${c.user.country.dial}${body.phone}`
   if (path === '/kyc/generate-link') d.url = `https://app.zapyd.com/kyc?kyc_id=${crypto.randomUUID()}`
 
   if (path === '/kyc/mock-kyc-status') d.status = body.kyc_status
@@ -862,7 +865,7 @@ export default function Demo() {
       if (st.id === 'payin-link') note(st, 'User linked their bank account on the hosted page. Your backend polls the bank list until it\'s VERIFIED.')
       for (const a of st.also ?? []) if (!(await call(a))) return
       if (st.ui === 'kyc-start' && alt) {
-        // Payout-only: fill the address with the market's sample.
+        // No PAYIN: fill the address with the market's sample.
         const addr = steps[at('payer-address')]
         if (!(await call(addr))) return
         setBusy(false)
@@ -1043,7 +1046,7 @@ export default function Demo() {
             <span className="profile-sub">
               <Flag c={user.country} size={14} />
               <span className="profile-clip">
-                {user.country.name} · {fullKyc(user.country) ? 'Full KYC' : 'Payout-only'}
+                {user.country.name} · {fullKyc(user.country) ? 'Full KYC' : 'KYC data'}
               </span>
             </span>
           </span>
@@ -1052,11 +1055,11 @@ export default function Demo() {
 
         {flow && choices(o).funding && i >= calcAt && !locked && (
           <section className="cfg" aria-label="Options">
-            {choices(o).indiaApi && (
+            {choices(o).payoutApi && o.dst !== user.country.fiat && (
               <div className="setting">
-                <span className="setting-title">India payout</span>
-                <div className="seg" role="radiogroup" aria-label="India payout">
-                  {INDIA_API.map((it) => (
+                <span className="setting-title">Payout API</span>
+                <div className="seg" role="radiogroup" aria-label="Payout API">
+                  {PAYOUT_API.map((it) => (
                     <button key={it.value} role="radio" aria-checked={o.purpose === it.value} title={it.sub} onClick={() => setO(normalize({ ...o, purpose: it.value }))}>
                       {it.label}
                     </button>
@@ -1365,7 +1368,7 @@ function Phone(p: ScreenProps & { user: User; onUser: (u: Partial<User>) => void
                 search: `${x.name} ${x.dial} ${x.fiat}`,
                 icon: <Flag c={x} size={28} />,
                 name: x.name,
-                sub: fullKyc(x) ? `Full KYC · ${x.fiat} payins and payouts` : `Payout-only · ${x.fiat} payouts`,
+                sub: fullKyc(x) ? `Full KYC · ${x.fiat} payins and payouts` : `KYC data · ${x.fiat} payouts`,
                 code: x.dial,
                 on: x.iso2 === c.iso2,
                 pick: () => {

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from './Canvas'
 import { Code } from './Code'
-import { DEFAULTS, DESTINATIONS, INDIA_API, NETWORKS, SOURCES, build, choices, coin, kindOf, market, normalize, pairFor, railName, stepFor, subtitle, type Opts, type Side } from './flow'
+import { DEFAULTS, DESTINATIONS, PAYOUT_API, NETWORKS, SOURCES, build, choices, coin, kindOf, market, normalize, pairFor, railName, stepFor, subtitle, type Opts, type Side } from './flow'
 import { Icon, Swap } from './icons'
 import { useTheme } from './theme'
 
@@ -128,14 +128,14 @@ export default function App() {
           </p>
         </section>
 
-        {(c.funding || c.indiaApi) && (
+        {(c.funding || c.payoutApi) && (
           <section className="cfg" aria-label="Options">
-            {c.indiaApi && (
+            {c.payoutApi && (
               <Setting
-                title="India payout"
+                title="Payout API"
                 value={opts.purpose}
                 onChange={(v) => set({ purpose: v as Opts['purpose'] })}
-                items={INDIA_API}
+                items={PAYOUT_API}
               />
             )}
             {c.funding && (

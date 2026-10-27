@@ -36,10 +36,10 @@ function sandbox(st: Step, flow: Flow): string | undefined {
         : undefined
     case 'ben-create':
       return (st.body as { capabilities?: string[] } | undefined)?.capabilities?.includes('PAYIN') === false
-        ? 'payout-only onboarding must be enabled for the country in sandbox too. Ask support if this returns an error.'
+        ? 'payouts to the country must be enabled for your organization in sandbox too. Ask support if this returns an error.'
         : undefined
     case 'bank-verified':
-      return 'set it with `POST /cms/api/v1/bank/mock-bank-verification` `{"customer_id": "...", "bank_id": "...", "bank_status": "VERIFIED"}`. It sends no webhook: read the account with `GET /cms/api/v1/bank/{customer_id}/{bank_id}`.'
+      return 'a new account is `VERIFIED` at once. To test `FAILED` or `MANUAL_REVIEW`, set it with `POST /cms/api/v1/bank/mock-bank-verification` `{"customer_id": "...", "bank_id": "...", "bank_status": "FAILED", "failure_reason": "NAME_MISMATCH"}`. The mock sends no webhook: read the account with `GET /cms/api/v1/bank/{customer_id}/{bank_id}`.'
     case 'payin-link':
       return 'the hosted page isn\'t available for test customers. Call `POST /cms/api/v1/bank/mock-bank-verification` `{"customer_id": "...", "bank_status": "VERIFIED"}` without `bank_id`: it creates a linked account that `GET /cms/api/v1/bank/list/{customer_id}` returns.'
     case 'payin-pay':
@@ -61,7 +61,7 @@ export function prompt(flow: Flow) {
   const payin = has('payin-quote')
   const prefunded = has('payout-balance')
   const payout = has('payout-quote')
-  const rda = path('payout-quote').includes('/remittance-payout/')
+  const remit = path('payout-quote').includes('/remittance-payout/')
   const types = [
     'CUSTOMER',
     ...(has('bank-verified') ? ['BANK'] : []),
@@ -106,8 +106,8 @@ export function prompt(flow: Flow) {
     out.push('- Read `GET /pis/api/v1/payin/configuration` (cache daily) and call `GET /ren/api/v1/payin/limits/{customer_id}`. If `available_limit` doesn\'t cover the amount, collect EDD (`POST /ren/api/v1/payin/edd/save`) when `is_edd_required` is true, otherwise block until `full_limit_reset_timestamp`.')
   if (payout)
     out.push(
-      rda
-        ? '- Read `GET /pos/api/v1/payout/configuration` (cache daily) for the INR payment methods, limits and `required_risk_parameters`.'
+      remit
+        ? '- Read `GET /pos/api/v1/payout/configuration` (cache daily) for the payment methods, limits and `required_risk_parameters`.'
         : '- Read the payout configuration (cache daily) and call `GET /ren/api/v1/payout/limits/{customer_id}` for the beneficiary. Handle EDD the same way.',
     )
   out.push(
@@ -116,8 +116,8 @@ export function prompt(flow: Flow) {
   )
 
   out.push('', 'Failure handling:')
-  out.push('- `CUSTOMER` `FAILED`: read `metadata.failure_reason`, let the user fix that part (each customer has 3 KYC attempts). `KYC_FAILED` is final.')
-  if (has('bank-verified')) out.push('- `BANK` `FAILED` (`NAME_MISMATCH`, `PENNY_DROP_FAILED`, `ACCOUNT_TYPE_NRE` …): ask for another account in the beneficiary\'s own name.')
+  out.push('- `CUSTOMER` `FAILED`: read `metadata.failure_reason`, let the user fix that part (each customer has 3 KYC attempts). `KYC_FAILED` is final. `CUSTOMER` `MANUAL_REVIEW` (for example a face mismatch) is a wait, not a failure.')
+  if (has('bank-verified')) out.push('- `BANK` `FAILED` (`NAME_MISMATCH`, `PENNY_DROP_FAILED`, `ACCOUNT_TYPE_NRE` …): ask for another account in the beneficiary\'s own name. `BANK` `MANUAL_REVIEW` is a wait: the next `BANK` webhook says `VERIFIED` or `FAILED`.')
   if (payin) out.push('- `PAYIN`: credit only on `SUCCESS`. On `FAILED` (`INCORRECT_UTR`, `PAYMENT_NOT_RECEIVED`), `REFUND_INITIATED` or `REFUNDED`, tell the user and stop the flow. `ON_HOLD` is under review: don\'t credit, and contact support with the payin `id`.')
   if (payout)
     out.push(

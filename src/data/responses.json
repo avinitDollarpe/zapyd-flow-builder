@@ -22,6 +22,43 @@
             "method": "DATA",
             "fields": {
               "tax_number": {
+                "required": true
+              },
+              "income_range": {
+                "required": true,
+                "choices": [
+                  "<10L",
+                  "10L-15L",
+                  "15L-20L",
+                  "20L-25L",
+                  "25L-50L",
+                  ">50L"
+                ]
+              },
+              "profession": {
+                "required": true,
+                "choices": [
+                  "Private Sector Employee",
+                  "Self-Employed / Freelancer",
+                  "Student",
+                  "Other"
+                ]
+              },
+              "document_type": {
+                "required": false,
+                "choices": [
+                  "ONLY_PAN",
+                  "GOVT_ID",
+                  "PASSPORT"
+                ]
+              },
+              "document_front_image_url": {
+                "required": false
+              },
+              "document_back_image_url": {
+                "required": false
+              },
+              "full_address": {
                 "required": false
               }
             }
@@ -49,7 +86,11 @@
     "data": {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "status": "PROCESSING",
-      "failure_reason": null
+      "failure_reason": null,
+      "capabilities": [
+        "PAYIN",
+        "PAYOUT"
+      ]
     }
   },
   "/kyc/remitter/create": {
@@ -131,10 +172,16 @@
       "rate": "85.00",
       "receiving_amount": "5100.00",
       "fees": {
+        "client_fee_fiat": "0.00",
+        "client_fee_crypto": "0.00",
+        "client_gst_fiat": "0.00",
+        "client_gst_crypto": "0.00",
         "zapyd_fee": "0.00",
-        "client_fee": "0.00",
-        "client_gst": "0.00",
-        "tds": "0"
+        "zapyd_gst": "0.00",
+        "pg_fee": "0.00",
+        "pg_gst": "0.00",
+        "tds": "0.00",
+        "gross_effective_exchange_rate": "85.00"
       },
       "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
       "created_at": "2026-09-30T10:00:00Z",
@@ -158,10 +205,16 @@
       "receiving_amount": "5100.00",
       "client_reference_id": "payout-ref-001",
       "fees": {
+        "client_fee_fiat": "0.00",
+        "client_fee_crypto": "0.00",
+        "client_gst_fiat": "0.00",
+        "client_gst_crypto": "0.00",
         "zapyd_fee": "0.00",
-        "client_fee": "0.00",
-        "client_gst": "0.00",
-        "tds": "0"
+        "zapyd_gst": "0.00",
+        "pg_fee": "0.00",
+        "pg_gst": "0.00",
+        "tds": "0.00",
+        "gross_effective_exchange_rate": "85.00"
       },
       "status": "PROCESSING",
       "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
@@ -261,10 +314,16 @@
       "rate": "85.00",
       "receiving_amount": "5100.00",
       "fees": {
+        "client_fee_fiat": "0.00",
+        "client_fee_crypto": "0.00",
+        "client_gst_fiat": "0.00",
+        "client_gst_crypto": "0.00",
         "zapyd_fee": "0.00",
-        "client_fee": "0.00",
-        "client_gst": "0.00",
-        "tds": "0"
+        "zapyd_gst": "0.00",
+        "pg_fee": "0.00",
+        "pg_gst": "0.00",
+        "tds": "0.00",
+        "gross_effective_exchange_rate": "85.00"
       },
       "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
       "created_at": "2026-09-30T10:00:00Z",
@@ -287,10 +346,16 @@
       "receiving_amount": "5100.00",
       "client_reference_id": "payout-ref-001",
       "fees": {
+        "client_fee_fiat": "0.00",
+        "client_fee_crypto": "0.00",
+        "client_gst_fiat": "0.00",
+        "client_gst_crypto": "0.00",
         "zapyd_fee": "0.00",
-        "client_fee": "0.00",
-        "client_gst": "0.00",
-        "tds": "0"
+        "zapyd_gst": "0.00",
+        "pg_fee": "0.00",
+        "pg_gst": "0.00",
+        "tds": "0.00",
+        "gross_effective_exchange_rate": "85.00"
       },
       "status": "PROCESSING",
       "wallet_address": "TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf",
@@ -324,7 +389,11 @@
     "data": {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "status": "VERIFIED",
-      "failure_reason": null
+      "failure_reason": null,
+      "capabilities": [
+        "PAYIN",
+        "PAYOUT"
+      ]
     }
   },
   "/bank/generate-link": {
