@@ -26,6 +26,7 @@ Agent and contributor rules (checks before committing, keeping data in step with
 | Query or message | Effect |
 | --- | --- |
 | `?view=demo` | Shows the demo instead of the flow builder |
+| `/rates/index.html` | The Rates page (static, in `public/rates/`): the market map, today's rate and price history, and the request-access form. Takes `?embed=1`, `?theme=` and the theme message like the app; `#c=IN` opens a country |
 | `?embed=1` | Hides the logo and the footer |
 | `?theme=light` or `?theme=dark` | Initial theme |
 | `postMessage({ type: 'zapyd:theme', theme })` | Switches theme live. The docs page sends it when the reader toggles dark mode |

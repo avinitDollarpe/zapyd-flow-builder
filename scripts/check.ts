@@ -1,6 +1,7 @@
 // Builds every source, destination and option combination and checks the
 // flow is well formed. Run with `npm run check`.
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { COINS, DEFAULTS, MARKETS, build, choices, normalize, type Opts } from '../src/flow'
 import { prompt } from '../src/prompt'
 
@@ -74,5 +75,10 @@ assert('steps' in rem && !rem.steps.some((s) => (s.body as Record<string, unknow
 assert('steps' in rem && rem.steps.some((s) => JSON.stringify(s.body ?? {}).includes('"capabilities":["REMITTANCE_PAYOUT"]')))
 assert('steps' in rem && rem.steps.some((s) => s.path?.endsWith('/kyc/add-data') && JSON.stringify(s.body) === JSON.stringify({ customer_id: s.body && (s.body as Record<string, unknown>).customer_id })))
 for (const f of [po, rem]) assert('steps' in f && !f.steps.some((s) => (s.body as Record<string, unknown>)?.client_reference_id && s.id !== 'ben-create'))
+
+// The Rates page lights every supported market: its market list (the published rate card) carries every currency in markets.json.
+const ratesSrc = readFileSync(new URL('../public/rates/core.js', import.meta.url), 'utf8')
+const ratesFiats = new Set([...ratesSrc.matchAll(/^\s*M\('[A-Z]{2}', '[^']*', '([A-Z]{3})'/gm)].map((m) => m[1]))
+for (const m of MARKETS) assert(ratesFiats.has(m.fiat), `public/rates/core.js has no market for ${m.fiat} from src/data/markets.json`)
 
 console.log(`ok: ${flows} flows`)

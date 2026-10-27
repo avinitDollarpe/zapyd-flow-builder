@@ -4,10 +4,11 @@ Instructions for AI coding agents (Claude Code, Cursor, Codex and others) workin
 
 ## What this is
 
-A Vite and React app with two views, both embedded in the Zapyd docs (the docs repo sits next to this one in `~/Desktop/personal/misc/all docs/docs`, rules in its `AGENT.md`):
+A Vite and React app with two views and a static rates page, all embedded in the Zapyd docs (the docs repo sits next to this one in `~/Desktop/personal/misc/all docs/docs`, rules in its `AGENT.md`):
 
 - **Flow Builder** (default view, docs tab `flow-builder.mdx`): pick a source and a destination and see every Zapyd API call in order, as a canvas and as numbered cURL steps, plus an AI agent prompt.
 - **UI Preview** (`?view=demo`, docs tab `demo.mdx`): a sample app that walks a user through sign-up, KYC, a calculator and the order, logging each call, response and webhook. It sends nothing.
+- **Rates** (`/rates/index.html`, docs tab `rates.mdx`): a static page in `public/rates/` with a dot map of every market, today's Zapyd rate and price history per market, and a request-access form for other countries. Each market's methods (rate model, fixed fee, speed, limit) and each method's rate and price history come from Nova's published rate card at `GET https://api.zapyd.com/pos/api/v1/payout/rates`; the payin volume tiers and deposit fees come from Nebula's `GET https://api.zapyd.com/pis/api/v1/payin/rates` (both public on the orchestrator, no partner auth; on localhost the page reads a local orchestrator on :8003, and `?api=` points it at any host); the form posts to the Apps Script in `scripts/request-access.gs` once `REQUEST_URL` is set.
 
 Pushes to `main` deploy to `https://zapyd-flow-builder.vercel.app`, which the docs embed, so `main` is production.
 
@@ -36,17 +37,19 @@ npm run build    # type-check and build to dist/
 | `src/styles.css`, `src/theme.ts` | Styles and light/dark theme |
 | `scripts/check.ts` | `npm run check`: every combination, plus spot checks on the rules the docs set |
 | `public/` | Logos, fonts, self-hosted flags and network icons |
+| `public/rates/` | The Rates page: `index.html`, `core.js`, `core.css` and the generated `dots.js` (`python3 scripts/gen-dots.py <natural-earth-india-pov.geojson> public/rates/dots.js`, needs numpy) |
 
 ## Keep in step with the docs repo
 
 The docs are the source of truth for API shapes and product rules; this app mirrors them.
 
 - **Payout rails and samples** in `src/data/markets.json` mirror `scripts/gen-country-guides.py` in the docs repo. Change both together.
+- **Markets on the Rates page:** the `M(...)` list in `public/rates/core.js` follows Nova's rate card (`PUBLIC_RATE_CARD`, the "Platform - API Rates" sheet), so it can list more markets than `src/data/markets.json`. When a country joins or leaves the card, change the `M(...)` list and `COVER` in `scripts/gen-dots.py`, then regenerate `public/rates/dots.js`. `npm run check` fails when a market in `src/data/markets.json` is missing from the Rates page.
 - **Responses** in `src/data/responses.json` are copied from the response examples in the docs repo's `api-reference-exchange/endpoint/*/apiEndpoints.json`. Copy them again when a response shape changes.
 - **Status codes:** payin and payout `quotation` and `initiate` (`POST /pis/…` and `/pos/…`) answer `201 Created`; every other call answers `200 OK` (`httpStatus` in `src/Demo.tsx`).
 - **Agent prompt:** the signing and webhook rules in `src/prompt.ts` match `scripts/gen-endpoint-prompts.py` and `guides/getting-started/build-with-ai.mdx` in the docs repo.
 - **Docs links:** every `docs:` path in a step must be a live page in the docs repo (check its `docs.json`). `docsUrl` prefixes them with `DOCS` in `src/flow.ts`, the Mintlify host until `docs.zapyd.com` is live.
-- **Embedding contract:** the query parameters, hash format and `postMessage` theme message in `README.md` are used by the docs pages. Don't change them without updating `flow-builder.mdx` and `demo.mdx`.
+- **Embedding contract:** the query parameters, hash format and `postMessage` theme message in `README.md` are used by the docs pages. Don't change them without updating `flow-builder.mdx`, `demo.mdx` and `rates.mdx`.
 
 ## Product rules
 

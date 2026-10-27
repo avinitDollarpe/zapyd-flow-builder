@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rates · Zapyd</title>
+<link rel="stylesheet" href="core.css">
+<style>
+/* The map fills the page. Clicking a country slides up a sheet with its rate and price history,
+   and the map moves up so that country stays in view above the sheet */
+html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not */
+.fit__stage { overflow: clip; }
+.fit__map { transition-property: translate; transition-duration: 150ms; transition-timing-function: ease-out; }
+.is-sheet .fit__map { transition-duration: 250ms; transition-timing-function: var(--ease-out); }
+/* Bottom sheet: opens in 250 ms, closes softer in 150 ms */
+.sheet { position: fixed; z-index: 30; left: 50%; bottom: 12px; width: min(1120px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: hidden auto; translate: -50% calc(100% + 24px); visibility: hidden; padding: 18px 20px 20px; border-radius: 20px; background: var(--surface); box-shadow: var(--float-shadow); display: grid; gap: 14px;
+  transition-property: translate, visibility; transition-duration: 150ms, 0ms; transition-delay: 0ms, 150ms; transition-timing-function: ease-out; }
+.sheet.is-open { translate: -50% 0; visibility: visible; transition-duration: 250ms, 0ms; transition-delay: 0ms; transition-timing-function: var(--ease-out); }
+.sheet__head { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--hair); }
+.sheet__head h2 { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.sheet__head h2 .flag { width: 24px; height: 18px; }
+.sheet__cur { padding: 2px 7px; border-radius: 6px; background: var(--gray-100); font-family: var(--mono); font-size: 11.5px; font-weight: 400; color: var(--gray-600); }
+.sheet__head #pick { margin-left: 8px; }
+.sheet__head .close { margin-left: auto; }
+.sheet__body { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; align-items: stretch; }
+/* Rate panel: a tinted surface (outer 16 = facts 12 + padding 4... panel padding 18 keeps inner radii independent) */
+.panel { display: grid; gap: 16px; align-content: start; min-width: 0; padding: 18px; border-radius: 16px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--hair); }
+.panel .rc { gap: 14px; }
+.panel .rc__big { font-size: 40px; }
+.panel .rc__swap { background: var(--surface); box-shadow: var(--shadow-border); }
+.panel__method { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--hair); }
+.panel__method .label { font-size: 10.5px; }
+.hist { display: grid; align-content: start; gap: 12px; min-width: 0; }
+.hist__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.hist__title { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.hist .stats > div:first-child { display: none; }      /* "Now" is the big number on the left */
+.hist .stats { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .sheet__body { grid-template-columns: 1fr; } .sheet__head { flex-wrap: wrap; } .sheet__head #pick { order: 3; flex-basis: 100%; margin: 0; } }
+
+/* Request-access modal: native <dialog> (focus trap, Esc). Enters in 200 ms, leaves softer in 150 ms.
+   Header and footer stay put; only the body scrolls on short screens */
+.req { width: min(560px, calc(100vw - 24px)); max-width: none; max-height: calc(100dvh - 24px); padding: 0; border: 0; border-radius: 20px; background: var(--surface); color: inherit; box-shadow: var(--float-shadow); overflow: hidden; }
+.req:focus { outline: none; }
+.req[open] { display: grid; animation: req-in 200ms var(--ease-out) both; }
+.req.is-closing { animation: req-out 150ms ease-out both; }
+.req::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); animation: fade-in 200ms ease-out both; }
+.req.is-closing::backdrop { animation: req-fade-out 150ms ease-out both; }
+@keyframes req-in { from { opacity: 0; scale: 0.96; translate: 0 8px; } }
+@keyframes req-out { to { opacity: 0; scale: 0.98; translate: 0 4px; } }
+@keyframes req-fade-out { to { opacity: 0; } }
+.req__form { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; max-height: calc(100dvh - 24px); }
+
+.req__head { display: flex; align-items: flex-start; gap: 14px; padding: 20px 20px 0 22px; }
+.req__badge { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--gray-100); color: var(--gray-500); }
+.req__badge .flag { width: 26px; height: 19px; border-radius: 3px; }
+.req__kicker { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange-text); }
+.req__kicker::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--orange); }
+.req__head h2 { margin-top: 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
+.req__head p { margin-top: 4px; font-size: 13.5px; color: var(--gray-500); }
+.req__head .close { margin-left: auto; flex: none; }
+
+.req__body { display: grid; gap: 20px; padding: 22px; overflow-y: auto; }
+.req__field { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.req__field > span, .req__field legend { padding: 0; font-size: 13px; font-weight: 500; color: var(--gray-700); }
+.req__field legend { margin-bottom: 8px; }
+.req__field em { font-style: normal; font-weight: 400; color: var(--gray-500); }
+.req__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.req__sep { height: 1px; margin: 0; border: 0; background: var(--hair); }
+.req .input { width: 100%; height: 40px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--gray-300); outline: 0; font-size: 14px; transition-property: box-shadow; transition-duration: 150ms; transition-timing-function: ease-out; }
+.req .input::placeholder { color: var(--gray-400); }
+.req textarea.input { height: auto; padding: 10px 12px; resize: vertical; line-height: 1.45; }
+.req .input:hover { box-shadow: inset 0 0 0 1px var(--gray-400); }
+.req .input:focus { box-shadow: inset 0 0 0 1px var(--blue), 0 0 0 3px var(--blue-50); }
+.req .input[aria-invalid='true'] { box-shadow: inset 0 0 0 1px var(--red), 0 0 0 3px var(--red-bg); }
+.req input[type='radio'] { position: absolute; opacity: 0; pointer-events: none; }
+
+/* Flow: radio cards with an icon, a title and one line of detail */
+.req__choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.req__choice { position: relative; display: grid; justify-items: start; align-content: start; gap: 2px; padding: 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--gray-300); cursor: pointer; transition-property: box-shadow, background-color; transition-duration: 150ms; transition-timing-function: ease-out; }
+.req__choice:hover { box-shadow: inset 0 0 0 1px var(--gray-400); }
+.req__choice:has(input:checked) { background: var(--blue-25); box-shadow: inset 0 0 0 1.5px var(--blue); }
+.req__choice:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+.req__ico { display: grid; place-items: center; width: 28px; height: 28px; margin-bottom: 8px; border-radius: 8px; background: var(--gray-100); color: var(--gray-600); transition-property: color, background-color; transition-duration: 150ms; transition-timing-function: ease-out; }
+.req__choice:has(input:checked) .req__ico { background: var(--blue-50); color: var(--blue); }
+.req__choice b { font-size: 13.5px; font-weight: 600; }
+.req__choice small { font-size: 12px; line-height: 1.35; color: var(--gray-500); }
+/* Radio mark: an empty ring that fills when chosen */
+.req__tick { position: absolute; top: 12px; right: 12px; width: 16px; height: 16px; border-radius: 999px; box-shadow: inset 0 0 0 1.5px var(--gray-300); transition-property: box-shadow; transition-duration: 150ms; transition-timing-function: ease-out; }
+.req__choice:has(input:checked) .req__tick { box-shadow: inset 0 0 0 5px var(--blue); }
+
+/* Volume: four equal pills */
+.req__chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; border-radius: 10px; }
+.req__chips span { display: grid; place-items: center; height: 36px; padding: 0 8px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--gray-300); font-size: 13px; font-weight: 500; color: var(--gray-700); white-space: nowrap; cursor: pointer; transition-property: color, background-color, box-shadow; transition-duration: 150ms; transition-timing-function: ease-out; }
+.req__chips span:hover { box-shadow: inset 0 0 0 1px var(--gray-400); }
+.req__chips input:checked + span { background: var(--blue-25); color: var(--blue); box-shadow: inset 0 0 0 1.5px var(--blue); }
+.req__chips input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.req__field[aria-invalid='true'] .req__chips { box-shadow: 0 0 0 3px var(--red-bg); }
+.req__field[aria-invalid='true'] .req__chips span { box-shadow: inset 0 0 0 1px var(--red); }
+
+/* Optional note stays folded until asked for */
+.req__more summary { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--blue); cursor: pointer; list-style: none; border-radius: 6px; }
+.req__more summary::-webkit-details-marker { display: none; }
+.req__more summary em { font-style: normal; font-weight: 400; color: var(--gray-500); }
+.req__more summary svg { transition-property: rotate; transition-duration: 150ms; transition-timing-function: var(--ease-std); }
+.req__more[open] summary svg { rotate: 45deg; }
+.req__more textarea { margin-top: 10px; }
+/* Site preview: favicon tile (radius 8) inside the card (radius 12) */
+.req__site { display: flex; align-items: center; gap: 10px; margin-top: -8px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--hair); animation: req-rise 200ms var(--ease-out) both; }
+.req__site-ico { position: relative; flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--surface); box-shadow: var(--shadow-border); color: var(--gray-500); overflow: hidden; }
+.req__site-ico img { position: absolute; width: 18px; height: 18px; object-fit: contain; opacity: 0; scale: 0.25; filter: blur(4px); transition-property: opacity, scale, filter; transition-duration: 200ms; transition-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+.req__site-ico svg { transition-property: opacity, scale, filter; transition-duration: 200ms; transition-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+.req__site.has-icon img { opacity: 1; scale: 1; filter: blur(0); }
+.req__site.has-icon svg { opacity: 0; scale: 0.25; filter: blur(4px); }
+.req__site-text { display: grid; min-width: 0; }
+.req__site-text b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.req__site-text small { font-size: 12px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+.req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
+.req__note, .req__error { display: flex; align-items: center; gap: 6px; margin: 0 auto 0 0; font-size: 12.5px; color: var(--gray-500); }
+.req__note svg { flex: none; }
+.req__error { color: var(--red-text); font-weight: 500; }
+.req__foot .btn { height: 38px; }
+/* Sending: the label stays, a spinner takes the arrow's place so the button keeps its width */
+.req__submit { position: relative; }
+.req__submit[aria-busy='true'] { pointer-events: none; }
+.req__submit[aria-busy='true'] svg { opacity: 0; }
+.req__submit[aria-busy='true']::after { content: ""; position: absolute; right: 14px; width: 12px; height: 12px; border-radius: 999px; border: 1.5px solid rgb(255 255 255 / .35); border-top-color: #fff; animation: req-spin 700ms linear infinite; }
+@keyframes req-spin { to { rotate: 1turn; } }
+
+/* Success: chunks rise in 100 ms apart (shown once per request) */
+.req__done { display: grid; justify-items: center; gap: 0; padding: 32px 22px 22px; text-align: center; overflow-y: auto; }
+.req__done > * { animation: req-rise 300ms var(--ease-out) both; }
+.req__done > :nth-child(2) { animation-delay: 100ms; }
+.req__done > :nth-child(3) { animation-delay: 200ms; }
+.req__done > :nth-child(4) { animation-delay: 300ms; }
+@keyframes req-rise { from { opacity: 0; translate: 0 6px; } }
+.req__done > .req__check { animation: req-pop 300ms cubic-bezier(0.2, 0, 0, 1) both; }
+@keyframes req-pop { from { opacity: 0; scale: 0.25; filter: blur(4px); } }
+.req__check { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 999px; background: var(--green-bg); color: var(--green-text); box-shadow: 0 0 0 6px color-mix(in srgb, var(--green-bg) 50%, transparent); }
+.req__done h2 { margin-top: 18px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.req__done h2 + p { margin-top: 6px; max-width: 360px; font-size: 13.5px; color: var(--gray-500); }
+.req__sum { width: 100%; margin: 20px 0 0; padding: 4px 14px; border-radius: 12px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--hair); text-align: left; }
+.req__sum div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; font-size: 13px; }
+.req__sum div + div { border-top: 1px solid var(--hair); }
+.req__sum dt { color: var(--gray-500); }
+.req__sum dd { margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 500; text-align: right; }
+.req__done .btn { width: 100%; height: 40px; margin-top: 16px; }
+
+/* Phones: the modal becomes a bottom sheet and the cards stack */
+@media (max-width: 560px) {
+  .req { width: 100%; margin: auto 0 0; border-radius: 20px 20px 0 0; }
+  .req[open] { animation-name: req-up; }
+  @keyframes req-up { from { translate: 0 24px; opacity: 0; } }
+  .req__row, .req__choices { grid-template-columns: 1fr; }
+  .req__choice { grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; padding-right: 40px; }
+  .req__ico { grid-row: span 2; margin: 0; }
+  .req__tick { top: 50%; translate: 0 -50%; }
+  .req__chips { grid-template-columns: 1fr 1fr; }
+  .req__note { display: none; }
+  .req__foot { flex-wrap: wrap; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  .req__error { flex-basis: 100%; }
+  .req__foot .btn { flex: 1; }
+}
+</style>
+</head>
+<body>
+<div class="fit">
+  <header class="nav">
+    <div class="nav__title">
+      <h1>Explore supported countries</h1>
+      <p>Today's rate and price history for every country Zapyd supports.</p>
+    </div>
+    <div class="nav__side">
+      <ul class="legend" aria-label="Map key"><li><i class="legend__on"></i>Supported</li><li><i></i>Not live yet</li></ul>
+      <span class="nav__sep" aria-hidden="true"></span>
+      <span id="live"></span><button id="themeToggle"></button>
+    </div>
+  </header>
+  <div class="fit__stage"><div class="fit__map" id="map"></div></div>
+  <p class="fit__foot">Click a country for today's rate and price history, or to request access where Zapyd isn't live yet. <button class="btn" id="open">Open rates</button></p>
+</div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="false" aria-labelledby="sTitle">
+  <div class="sheet__head">
+    <h2 id="sTitle"></h2>
+    <div id="pick"></div>
+    <button class="close" id="close" aria-label="Close"></button>
+  </div>
+  <div class="sheet__body">
+    <section class="panel" aria-label="Today's rate">
+      <div id="rate"></div>
+      <div class="panel__method"><span class="label" id="methodLabel">Method</span><div id="method"></div></div>
+    </section>
+    <section class="hist" aria-label="Price history">
+      <div class="hist__head"><span class="hist__title">Zapyd price history</span><div id="range"></div></div>
+      <div id="chart"></div>
+      <div id="stats"></div>
+    </section>
+  </div>
+</aside>
+
+<dialog class="req" id="req" aria-labelledby="reqTitle" aria-describedby="reqLede" tabindex="-1">
+  <form class="req__form" id="reqForm" novalidate>
+    <div class="req__head">
+      <span class="req__badge" id="reqFlag"></span>
+      <div>
+        <span class="req__kicker">Not live yet</span>
+        <h2 id="reqTitle">Request <span data-country></span></h2>
+        <p id="reqLede">Zapyd isn't live here yet. Tell us which flow you'd run in <span data-country></span> and we'll reply by email.</p>
+      </div>
+      <button type="button" class="close" id="reqClose" aria-label="Close"></button>
+    </div>
+    <div class="req__body">
+      <fieldset class="req__field">
+        <legend>Which flow do you need?</legend>
+        <div class="req__choices">
+          <label class="req__choice"><input type="radio" name="flow" value="payout" checked><span class="req__ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></span><b>Payout</b><small>Pay people in local currency</small><span class="req__tick"></span></label>
+          <label class="req__choice"><input type="radio" name="flow" value="payin"><span class="req__ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 7 7 17M16 17H7V8"/></svg></span><b>Payin</b><small>Collect local currency as stablecoins</small><span class="req__tick"></span></label>
+          <label class="req__choice"><input type="radio" name="flow" value="both"><span class="req__ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4"/></svg></span><b>Both</b><small>Collect and pay out</small><span class="req__tick"></span></label>
+        </div>
+      </fieldset>
+      <fieldset class="req__field" id="reqVolume">
+        <legend>Expected monthly volume there</legend>
+        <div class="req__chips">
+          <label><input type="radio" name="volume" value="Under $100K"><span>Under $100K</span></label>
+          <label><input type="radio" name="volume" value="$100K to $1M"><span>$100K–$1M</span></label>
+          <label><input type="radio" name="volume" value="$1M to $10M"><span>$1M–$10M</span></label>
+          <label><input type="radio" name="volume" value="Over $10M"><span>Over $10M</span></label>
+        </div>
+      </fieldset>
+      <hr class="req__sep">
+      <div class="req__row">
+        <label class="req__field"><span>Company website</span><input class="input" name="website" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" maxlength="300" placeholder="acme.com" required></label>
+        <label class="req__field"><span>Work email</span><input class="input" name="email" type="email" autocomplete="email" maxlength="200" placeholder="asha@acme.com" required></label>
+      </div>
+      <div class="req__site" id="reqSite" hidden aria-live="polite">
+        <span class="req__site-ico"><img alt="" id="siteIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg></span>
+        <span class="req__site-text"><b id="siteHost"></b><small>Company website</small></span>
+      </div>
+      <details class="req__more" id="reqMore">
+        <summary><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add a note <em>Optional</em></summary>
+        <textarea class="input" name="notes" rows="3" maxlength="1000" aria-label="Note" placeholder="Payment methods, launch date, anything else"></textarea>
+      </details>
+      <input class="req__hp" name="fax" tabindex="-1" autocomplete="off" aria-hidden="true">
+    </div>
+    <div class="req__foot">
+      <p class="req__note" id="reqNote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Used only to reply to you</p>
+      <p class="req__error" id="reqError" role="alert" hidden></p>
+      <button type="button" class="btn" id="reqCancel">Cancel</button>
+      <button class="btn btn--primary req__submit" id="reqSubmit">Send request<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+    </div>
+  </form>
+  <div class="req__done" id="reqDone" hidden>
+    <span class="req__check"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17l9-10"/></svg></span>
+    <div><h2>Request sent</h2><p id="reqDoneText"></p></div>
+    <dl class="req__sum" id="reqSum"></dl>
+    <button type="button" class="btn btn--primary" id="reqOk">Done</button>
+  </div>
+</dialog>
+<script src="dots.js"></script>
+<script src="core.js"></script>
+<script>
+// Google Apps Script web app that appends each request to a Google Sheet (see scripts/request-access.gs).
+// Leave empty while there is no sheet: requests are then simulated and logged to the console.
+const REQUEST_URL = 'https://script.google.com/macros/s/AKfycbxJJ1aZRZ_dYcX0BOOMKBD1cPL0wpxeyZQGlgmeE1uqpSUi5w6k7fCiQrsrHWDQpWCC/exec'
+
+Z.boot()
+const $ = id => document.getElementById(id)
+const CLOSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+$('close').innerHTML = CLOSE; $('reqClose').innerHTML = CLOSE
+Z.livePill($('live'))
+Z.themeToggle($('themeToggle'))
+const sheet = $('sheet'), mapEl = $('map'), req = $('req'), form = $('reqForm')
+let opener = null, chart = null, shift = 0
+
+// ── Rates sheet (supported countries) ──
+// Lift the map so the chosen country sits above the sheet (a composited translate, no map redraw)
+const lift = () => {
+  const k = Z.state.flow === 'payin' ? 'US' : Z.state.sel, r = mapEl.getBoundingClientRect()
+  const y = r.top + shift + Z.toXY(Z.BY[k]).y / DOTS.h * r.height, sheetTop = innerHeight - 12 - sheet.offsetHeight
+  shift = Math.max(0, Math.min(y + 32 - sheetTop, r.height * .6))
+  mapEl.style.translate = `0 ${-shift}px`
+}
+const open = () => {
+  if (!sheet.classList.contains('is-open')) opener = document.activeElement
+  chart ??= Z.chart($('chart'), { height: 228, label: false, stats: $('stats') })   // first open: the chart intro plays in view
+  sheet.classList.add('is-open'); document.body.classList.add('is-sheet'); lift()
+  setTimeout(() => $('close').focus(), 50)
+}
+const close = () => { sheet.classList.remove('is-open'); document.body.classList.remove('is-sheet'); shift = 0; mapEl.style.translate = ''; opener?.focus?.() }
+
+// ── Request access (unsupported countries) ──
+let country = null
+const GLOBE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>'
+const FLOWS = { payout: 'Payout', payin: 'Payin', both: 'Payin and payout' }
+// The footer shows either the privacy note or the current error
+const showError = msg => { $('reqError').textContent = msg; $('reqError').hidden = !msg; $('reqNote').hidden = !!msg }
+form.addEventListener('input', e => e.target.closest('[aria-invalid]')?.removeAttribute('aria-invalid'))
+const openRequest = c => {
+  if (sheet.classList.contains('is-open')) close()
+  country = c
+  form.querySelectorAll('[data-country]').forEach(e => { e.textContent = c.name })
+  $('reqFlag').innerHTML = c.iso ? `<img class="flag" src="${Z.flagUrl({ flag: c.iso })}" alt="">` : GLOBE
+  form.reset(); form.hidden = false; $('reqDone').hidden = true; $('reqMore').open = false; showError('')
+  siteBox.hidden = true; siteBox.classList.remove('has-icon'); site.host = ''; site.icon = ''; $('siteIcon').removeAttribute('src')
+  form.querySelectorAll('[aria-invalid]').forEach(f => f.removeAttribute('aria-invalid'))
+  req.showModal(); req.focus()                 // focus the dialog itself; Tab reaches the first choice
+}
+const closeRequest = () => {
+  if (!req.open || req.classList.contains('is-closing')) return
+  if (Z.REDUCED) return req.close()
+  req.classList.add('is-closing')
+  setTimeout(() => { req.classList.remove('is-closing'); req.close() }, 150)
+}
+req.addEventListener('cancel', e => { e.preventDefault(); closeRequest() })                 // Esc
+req.addEventListener('click', e => { if (e.target === req) closeRequest() })                 // backdrop
+$('reqClose').addEventListener('click', closeRequest); $('reqCancel').addEventListener('click', closeRequest); $('reqOk').addEventListener('click', closeRequest)
+
+const send = async payload => {
+  if (!REQUEST_URL) { console.info('Request access (simulated; set REQUEST_URL to save it):', payload); return new Promise(r => setTimeout(r, 600)) }
+  // text/plain body keeps this a simple request, so Apps Script needs no CORS preflight
+  const res = await fetch(REQUEST_URL, { method: 'POST', body: JSON.stringify(payload) })
+  const out = await res.json().catch(() => ({}))
+  if (!res.ok || out.ok !== true) throw new Error(out.error || `HTTP ${res.status}`)
+}
+// ── Website preview: favicon (Google's favicon service) and host, no lookup ──
+const siteUrl = v => {
+  v = v.trim(); if (!v) return null
+  try { const u = new URL(/^https?:\/\//i.test(v) ? v : 'https://' + v); return /^[^.]+\.[^.]{2,}/.test(u.hostname) && !u.hostname.includes(' ') ? u : null } catch { return null }
+}
+const site = { host: '', icon: '' }
+const siteBox = $('reqSite')
+let previewTimer = 0
+const previewSite = () => {
+  const u = siteUrl(form.elements.website.value)
+  if (!u) { siteBox.hidden = true; site.host = ''; site.icon = ''; return }
+  site.host = u.hostname.replace(/^www\./, '')
+  site.icon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(site.host)}&sz=64`
+  $('siteIcon').src = site.icon; $('siteHost').textContent = site.host; siteBox.hidden = false
+}
+$('siteIcon').addEventListener('load', () => siteBox.classList.add('has-icon'))
+$('siteIcon').addEventListener('error', () => siteBox.classList.remove('has-icon'))
+form.elements.website.addEventListener('input', () => { clearTimeout(previewTimer); previewTimer = setTimeout(previewSite, 350) })
+
+form.addEventListener('submit', async e => {
+  e.preventDefault()
+  const f = form.elements, bad = []
+  for (const [name, label] of [['volume', 'your volume'], ['website', 'your company website'], ['email', 'a work email']]) {
+    const ok = name === 'website' ? !!siteUrl(f.website.value) : !!f[name].value.trim() && (name === 'volume' || f[name].checkValidity())
+    const el = name === 'volume' ? $('reqVolume') : f[name]   // radios are flagged on their fieldset
+    el.setAttribute('aria-invalid', !ok); if (!ok) bad.push(label)
+  }
+  if (bad.length) {
+    showError(`Add ${bad.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`)
+    const first = form.querySelector('[aria-invalid="true"]'); (first.matches('fieldset') ? first.querySelector('input') : first).focus(); return
+  }
+  const btn = $('reqSubmit'); btn.setAttribute('aria-busy', 'true'); showError('')
+  try {
+    const url = siteUrl(f.website.value)
+    await send({ country: country.name, flow: f.flow.value, volume: f.volume.value, website: url.href, email: f.email.value.trim(), notes: f.notes.value.trim(), fax: f.fax.value })
+    $('reqDoneText').textContent = `Thanks. We'll reply to ${f.email.value.trim()} about ${FLOWS[f.flow.value].toLowerCase()} in ${country.name}.`
+    const row = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`
+    $('reqSum').innerHTML = row('Country', $('reqFlag').querySelector('img')?.outerHTML ?? '') + row('Company', site.icon ? `<img class="flag" style="width:16px;height:16px;border-radius:4px" src="${site.icon}" alt="">` : '') + row('Need', FLOWS[f.flow.value]) + row('Monthly volume', f.volume.value)
+    const dds = $('reqSum').querySelectorAll('dd'); dds[0].append(country.name); dds[1].append(site.host || url.hostname)   // text nodes: never markup
+    form.hidden = true; $('reqDone').hidden = false; $('reqOk').focus()
+  } catch (err) {
+    showError("Couldn't send. Check your connection and try again.")
+  } finally { btn.removeAttribute('aria-busy') }
+})
+
+Z.map(mapEl, { onPick: open, onRequest: openRequest })
+$('open').addEventListener('click', open)
+$('close').addEventListener('click', close)
+addEventListener('keydown', e => { if (e.key === 'Escape' && !req.open && sheet.classList.contains('is-open')) close() })
+addEventListener('resize', () => sheet.classList.contains('is-open') && lift())
+const title = () => { const v = Z.view(); $('methodLabel').textContent = v.flow === 'payin' ? 'Stablecoin and volume' : 'Method'; $('sTitle').innerHTML = `${Z.flag(v.m)}${v.flow === 'payin' ? 'Payin from the USA' : v.m.name}<span class="sheet__cur">${v.flow === 'payin' ? 'USD' : v.m.cur}</span>` }
+Z.sub(t => { if (['flow', 'select'].includes(t)) { title(); if (sheet.classList.contains('is-open')) lift() } }); title()
+Z.rateCheck($('rate'), { controls: false, list: false })
+Z.filters($('pick'), { flow: true, method: false })
+Z.filters($('method'), { flow: false, method: true })
+Z.filters($('range'), { flow: false, method: false, range: true })
+</script>
+</body>
+</html>
