@@ -69,7 +69,10 @@ const load = async (range, cur = '') => {
     // VND comes with 6 decimals (25808.166000): cut to 2, no rounding. Every other currency shows the API's decimals
     const cut = s => g.fiat === 'VND' ? s.replace(/(\.\d{2})\d+$/, '$1') : s
     const methods = g.methods.map((x, i) => {
-      const key = m.key + i, pts = x.points.map(([t, r]) => [t, cut(r)]), last = pts.at(-1)
+      const key = m.key + i
+      // USDC to USD is pegged: always 1 less 10 bps, a flat line, whatever the API sends
+      if (g.fiat === 'USD') return { key, name: x.method, rate: x.rate, fee: x.fee, speed: x.speed, limit: x.limit, mid: 0.999, dp: 4 }
+      const pts = x.points.map(([t, r]) => [t, cut(r)]), last = pts.at(-1)
       if (pts.length) hist[key + range] = { t: pts.map(p => p[0]), v: pts.map(p => +p[1]) }
       if (last) Z.state.updated = Math.max(Z.state.updated, last[0])
       return { key, name: x.method, rate: x.rate, fee: x.fee, speed: x.speed, limit: x.limit,
