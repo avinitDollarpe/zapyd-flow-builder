@@ -14,11 +14,11 @@ const POPULAR: { o: Partial<Opts> & { src: string; dst: string }; note: string }
   { o: { src: 'INR', dst: 'USDC', network: 'polygon', payinMethod: 'UPI' }, note: 'UPI' },
   { o: { src: 'USD', dst: 'USDC', network: 'polygon', payinMethod: 'ACH_PULL' }, note: 'ACH' },
   { o: { src: 'USDC', dst: 'INR', network: 'polygon', rail: 'ACCOUNT_DETAILS' }, note: 'IMPS' },
-  { o: { src: 'USDC', dst: 'MXN', network: 'solana' }, note: 'SPEI' },
-  { o: { src: 'USDC', dst: 'EUR', network: 'ethereum' }, note: 'SEPA' },
-  { o: { src: 'USDC', dst: 'BRL', funding: 'prefunded' }, note: 'Prefunded' },
+  { o: { src: 'USDC', dst: 'BDT', network: 'solana' }, note: 'Mobile wallet' },
+  { o: { src: 'USDC', dst: 'VND', network: 'ethereum', purpose: 'remittance' }, note: 'Remittance' },
+  { o: { src: 'USDC', dst: 'PHP', funding: 'prefunded' }, note: 'Prefunded' },
   { o: { src: 'USD', dst: 'INR', payinMethod: 'WIRE', purpose: 'remittance' }, note: 'RDA' },
-  { o: { src: 'USD', dst: 'MXN', payinMethod: 'WIRE' }, note: 'Wire' },
+  { o: { src: 'USD', dst: 'AED', payinMethod: 'WIRE' }, note: 'Wire' },
 ]
 
 function readHash(): Opts {
@@ -33,7 +33,7 @@ function readHash(): Opts {
   // payout fiats and stablecoins as a destination.
   if (!SOURCES.includes(opts.src)) opts.src = DEFAULTS.src
   if (!DESTINATIONS.includes(opts.dst)) opts.dst = DEFAULTS.dst
-  if (kindOf(opts) === 'unsupported') opts.dst = coin(opts.src) ? 'MXN' : 'USDC'
+  if (kindOf(opts) === 'unsupported') opts.dst = coin(opts.src) ? DEFAULTS.dst : 'USDC'
   return normalize(opts)
 }
 

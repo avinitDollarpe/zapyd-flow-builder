@@ -30,6 +30,6 @@ Agent and contributor rules (checks before committing, keeping data in step with
 | `?embed=1` | Hides the logo and the footer |
 | `?theme=light` or `?theme=dark` | Initial theme |
 | `postMessage({ type: 'zapyd:theme', theme })` | Switches theme live. The docs page sends it when the reader toggles dark mode |
-| `#src=USDC&dst=MXN&...` | The selected flow. It is kept in the URL, so flows can be linked |
+| `#src=USDC&dst=INR&...` | The selected flow. It is kept in the URL, so flows can be linked |
 
 Icons are from [Lucide](https://lucide.dev) (ISC). Flags are from [flagcdn](https://flagcdn.com), self-hosted in `public/flags`.
