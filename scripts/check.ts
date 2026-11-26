@@ -132,6 +132,12 @@ for (const k of ['beneficiary_native_first_name', 'beneficiary_native_last_name'
 const bdRem = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'BDT', purpose: 'remittance' }))
 assert('steps' in bdRem && JSON.stringify(bodyOf(bdRem, 'ben-address')?.beneficiary_identifiers) === '{"beneficiary_nationality":"BGD"}')
 assert(!('postal_code' in bodyOf(bdRem, 'ben-address')!))
+// China and a Philippines remittance customer send no address.
+for (const [dst, purpose] of [['CNY', 'payout'], ['CNY', 'remittance'], ['PHP', 'remittance']] as const) {
+  const f = build(normalize({ ...DEFAULTS, src: 'USDC', dst, purpose }))
+  assert('steps' in f && !('street' in bodyOf(f, 'ben-address')!), `${dst} ${purpose}: address`)
+}
+assert.deepEqual(market('CNY')!.rails[0].identifiers, ['account_holder_name', 'account_number'])
 const bdPay = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'BDT' }))
 assert('steps' in bdPay && (bodyOf(bdPay, 'ben-address')?.beneficiary_identifiers as Body)?.beneficiary_gender)
 // Vietnam: the account is VERIFIED in the bank/create response.

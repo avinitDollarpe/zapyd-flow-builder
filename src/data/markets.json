@@ -22,6 +22,10 @@
    "onboarding": "payout-only",
    "sample": {
     "name": "Rahim Uddin",
+    "customer": {
+     "email": "rahim.uddin@example.com",
+     "phone": "1712345678"
+    },
     "address": {
      "street": "House 12, Road 5, Dhanmondi",
      "city": "Dhaka",
@@ -95,18 +99,8 @@
    "flag": "🇨🇳",
    "alpha3": "CHN",
    "guide": "/guides/country-guides/china/overview",
-   "address": [
-    "street",
-    "city",
-    "state_province",
-    "postal_code"
-   ],
-   "remittance_address": [
-    "street",
-    "city",
-    "state_province",
-    "postal_code"
-   ],
+   "address": [],
+   "remittance_address": [],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
@@ -115,12 +109,7 @@
      "email": "li.wei@example.com",
      "phone": "13123456789"
     },
-    "address": {
-     "street": "1 Fuxingmen Inner Street",
-     "city": "Beijing",
-     "state_province": "Beijing",
-     "postal_code": "100818"
-    },
+    "address": {},
     "beneficiary": {
      "beneficiary_id_doc_number": "110101199001011234",
      "beneficiary_native_first_name": "伟",
@@ -128,9 +117,7 @@
     },
     "ids": {
      "account_holder_name": "Li Wei",
-     "bank_name": "Bank of China",
-     "account_number": "6217850000001234567",
-     "swift_code": "BKCHCNBJ"
+     "account_number": "6217850000001234567"
     }
    },
    "remitter": {
@@ -152,9 +139,7 @@
      "payment_method": "BANK_TRANSFER",
      "identifiers": [
       "account_holder_name",
-      "bank_name",
-      "account_number",
-      "swift_code"
+      "account_number"
      ],
      "beneficiary": [
       "beneficiary_id_doc_number",
@@ -237,6 +222,10 @@
    "onboarding": "payout-only",
    "sample": {
     "name": "Budi Santoso",
+    "customer": {
+     "email": "budi.santoso@example.com",
+     "phone": "81234567890"
+    },
     "address": {
      "street": "Jl. Jenderal Sudirman Kav. 52-53",
      "city": "Jakarta Selatan",
@@ -401,16 +390,15 @@
     "state_province",
     "postal_code"
    ],
-   "remittance_address": [
-    "street",
-    "city",
-    "state_province",
-    "postal_code"
-   ],
+   "remittance_address": [],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
     "name": "Maria Santos",
+    "customer": {
+     "email": "maria.santos@example.com",
+     "phone": "9171234567"
+    },
     "address": {
      "street": "6750 Ayala Avenue",
      "city": "Makati",
@@ -516,6 +504,10 @@
    "onboarding": "payout-only",
    "sample": {
     "name": "Ahmed Al Mansoori",
+    "customer": {
+     "email": "ahmed.almansoori@example.com",
+     "phone": "501234567"
+    },
     "address": {
      "street": "Sheikh Zayed Road 101",
      "city": "Dubai",
@@ -618,6 +610,10 @@
    "onboarding": "payout-only",
    "sample": {
     "name": "Nguyen Minh Anh",
+    "customer": {
+     "email": "nguyen.minh@example.com",
+     "phone": "912345678"
+    },
     "address": {
      "street": "12 Le Loi, Ben Nghe Ward",
      "city": "Ho Chi Minh City",

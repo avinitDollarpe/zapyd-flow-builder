@@ -33,7 +33,7 @@ export interface Market {
   onboarding?: 'standard' | 'payout-only'
   sample?: {
     name: string
-    // Extra customer/create fields the market needs (China and Nigeria: email and phone).
+    // Extra customer/create fields the market needs: email and phone outside India.
     customer?: Record<string, string>
     address: Record<string, string>
     beneficiary: Record<string, string>
