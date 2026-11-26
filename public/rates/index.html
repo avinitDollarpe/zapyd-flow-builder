@@ -349,6 +349,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
   </form>
 </dialog>
 <script src="dots.js"></script>
+<script src="phone.js"></script>
 <script src="core.js"></script>
 <script>
 // Google Apps Script web app that appends each request to a Google Sheet (see scripts/request-access.gs).
@@ -390,7 +391,9 @@ const FLOWS = { payout: 'Payout', payin: 'Payin', both: 'Payin and payout' }
 // The footer shows either the privacy note or the current error
 const showError = msg => { $('reqError').textContent = msg; $('reqError').hidden = !msg; $('reqNote').hidden = !!msg }
 form.addEventListener('input', e => e.target.closest('[aria-invalid]')?.removeAttribute('aria-invalid'))
+let reqAt = 0   // when the form opened: a bot sends it within a second or two
 const openRequest = c => {
+  reqAt = Date.now()
   if (sheet.classList.contains('is-open')) close()
   country = c
   form.querySelectorAll('[data-country]').forEach(e => { e.textContent = c.name })
@@ -411,6 +414,36 @@ req.addEventListener('cancel', e => { e.preventDefault(); closeRequest() })     
 req.addEventListener('click', e => { if (e.target === req) closeRequest() })                 // backdrop
 $('reqClose').addEventListener('click', closeRequest); $('reqCancel').addEventListener('click', closeRequest); $('reqOk').addEventListener('click', closeRequest)
 
+// ── Spam checks (scripts/request-access.gs repeats the email and phone rules) ──
+// A work email: a real address on a company domain, not a personal or throwaway inbox. A personal provider is
+// matched by its name on a country domain too (yahoo.co.uk, gmx.de)
+const FREE_MAIL = new Set(('gmail googlemail yahoo ymail rocketmail hotmail outlook live msn icloud me mac aol proton protonmail pm gmx ' +
+  'yandex zoho zohomail rediffmail mail inbox tutanota tuta fastmail hey web qq 163 126 sina naver daum hanmail rambler seznam libero ' +
+  'comcast.net verizon.net att.net sbcglobal.net btinternet.com sky.com orange.fr free.fr laposte.net t-online.de wp.pl o2.pl interia.pl bk.ru list.ru').split(' '))
+const DISPOSABLE = new Set(('mailinator guerrillamail sharklasers grr 10minutemail tempmail temp-mail yopmail trashmail getnada nada dispostable ' +
+  'maildrop mailnesia throwawaymail fakeinbox mintemail mohmal emailondeck tempr discard spamgourmet burnermail moakt 33mail mytemp ' +
+  'tempinbox mailcatch spambox mailpoof tempmailo emailfake fakemail inboxkitten 1secmail').split(' '))
+const COUNTRY_TLD = /^(?:(?:co|com|net|org|ac)\.)?[a-z]{2,3}$/
+const emailProblem = v => {
+  const m = v.trim().toLowerCase().match(/^[a-z0-9](?:[a-z0-9._%+'-]{0,62}[a-z0-9])?@((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24})$/)
+  if (!m || v.includes('..')) return 'Enter a valid work email.'
+  const domain = m[1], [name, ...rest] = domain.split('.')
+  if (/\.(test|example|invalid|localhost|local)$/.test(domain) || /^example\.(com|net|org)$/.test(domain)) return 'Enter a real work email.'
+  if (DISPOSABLE.has(name)) return 'Use your work email, not a temporary inbox.'
+  if (FREE_MAIL.has(domain) || (FREE_MAIL.has(name) && COUNTRY_TLD.test(rest.join('.')))) return 'Use your work email, not a personal one.'
+  return ''
+}
+// A phone number that exists: it matches a mobile or landline pattern of a region with that country code
+// (+44 is also Jersey, +1 also Canada), and is not one repeated digit or a 0123456789 run
+const phoneRes = {}
+const phoneProblem = (c, value) => {
+  const v = value.trim(), n = v.replace(/\D/g, '')
+  if (!/^[\d\s().-]+$/.test(v)) return 'Enter the phone number with digits only.'
+  const res = phoneRes[c.dial] ??= Object.entries(PHONE).filter(([, [d]]) => d === c.dial).map(([, [, p]]) => new RegExp(`^(?:${p})$`))
+  const real = [n, n.replace(/^0+/, '')].some(x => res.some(r => r.test(x)))   // a leading trunk 0 (07911...) is fine
+  const junk = /^(\d)\1+$/.test(n) || (n.length >= 7 && ('01234567890123456789'.includes(n) || '98765432109876543210'.includes(n)))
+  return real && !junk ? '' : `Check the phone number for ${c.name}.`
+}
 const send = async payload => {
   if (!REQUEST_URL) { console.info('Request access (simulated; set REQUEST_URL to save it):', payload); return new Promise(r => setTimeout(r, 600)) }
   // text/plain body keeps this a simple request, so Apps Script needs no CORS preflight
@@ -439,20 +472,20 @@ form.elements.website.addEventListener('input', () => { clearTimeout(previewTime
 
 form.addEventListener('submit', async e => {
   e.preventDefault()
-  const f = form.elements, bad = []
+  const f = form.elements, bad = [], mailProblem = f.email.value.trim() ? emailProblem(f.email.value) : ''
   for (const [name, label] of [['volume', 'your volume'], ['website', 'your company website'], ['email', 'a work email']]) {
-    const ok = name === 'website' ? !!siteUrl(f.website.value) : !!f[name].value.trim() && (name === 'volume' || f[name].checkValidity())
+    const ok = name === 'website' ? !!siteUrl(f.website.value) : name === 'email' ? !!f.email.value.trim() && !mailProblem : !!f[name].value
     const el = name === 'volume' ? $('reqVolume') : f[name]   // radios are flagged on their fieldset
     el.setAttribute('aria-invalid', !ok); if (!ok) bad.push(label)
   }
   if (bad.length) {
-    showError(`Add ${bad.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`)
+    showError(bad.length === 1 && mailProblem ? mailProblem : `Add ${bad.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`)
     const first = form.querySelector('[aria-invalid="true"]'); (first.matches('fieldset') ? first.querySelector('input') : first).focus(); return
   }
   const btn = $('reqSubmit'); btn.setAttribute('aria-busy', 'true'); showError('')
   try {
     const url = siteUrl(f.website.value)
-    await send({ country: country.name, flow: f.flow.value, volume: f.volume.value, website: url.href, email: f.email.value.trim(), notes: f.notes.value.trim(), fax: f.fax.value })
+    await send({ country: country.name, flow: f.flow.value, volume: f.volume.value, website: url.href, email: f.email.value.trim(), notes: f.notes.value.trim(), fax: f.fax.value, elapsed: Date.now() - reqAt })
     $('reqDoneText').textContent = `Thanks. We'll reply to ${f.email.value.trim()} about ${FLOWS[f.flow.value].toLowerCase()} in ${country.name}.`
     const row = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`
     $('reqSum').innerHTML = row('Country', $('reqFlag').querySelector('img')?.outerHTML ?? '') + row('Company', site.icon ? `<img class="flag" style="width:16px;height:16px;border-radius:4px" src="${site.icon}" alt="">` : '') + row('Need', FLOWS[f.flow.value]) + row('Monthly volume', f.volume.value)
@@ -468,16 +501,16 @@ form.addEventListener('submit', async e => {
 const lead = $('lead'), leadForm = $('leadForm')
 const leadError = msg => { $('leadError').textContent = msg; $('leadError').hidden = !msg; $('leadNote').hidden = !!msg }
 leadForm.addEventListener('input', e => e.target.removeAttribute('aria-invalid'))
+let leadAt = 0
 const open = () => {
   if (Z.unlocked) return showSheet()
   leadError(''); leadForm.querySelectorAll('[aria-invalid]').forEach(f => f.removeAttribute('aria-invalid'))
   $('leadFlag').innerHTML = GLOBE
-  lead.showModal(); leadForm.elements.name.focus()
+  leadAt = Date.now(); lead.showModal(); leadForm.elements.name.focus()
 }
-// ── Phone country code: every region libphonenumber dials (iso2 + code), names from the browser (Intl) ──
-const DIAL = 'ad376 ae971 af93 ag1 ai1 al355 am374 ao244 ar54 as1 at43 au61 aw297 ax358 az994 ba387 bb1 bd880 be32 bf226 bg359 bh973 bi257 bj229 bl590 bm1 bn673 bo591 bq599 br55 bs1 bt975 bw267 by375 bz501 ca1 cc61 cd243 cf236 cg242 ch41 ci225 ck682 cl56 cm237 cn86 co57 cr506 cu53 cv238 cw599 cx61 cy357 cz420 de49 dj253 dk45 dm1 do1 dz213 ec593 ee372 eg20 eh212 er291 es34 et251 fi358 fj679 fk500 fm691 fo298 fr33 ga241 gb44 gd1 ge995 gf594 gg44 gh233 gi350 gl299 gm220 gn224 gp590 gq240 gr30 gt502 gu1 gw245 gy592 hk852 hn504 hr385 ht509 hu36 id62 ie353 il972 im44 in91 io246 iq964 ir98 is354 it39 je44 jm1 jo962 jp81 ke254 kg996 kh855 ki686 km269 kn1 kp850 kr82 kw965 ky1 kz7 la856 lb961 lc1 li423 lk94 lr231 ls266 lt370 lu352 lv371 ly218 ma212 mc377 md373 me382 mf590 mg261 mh692 mk389 ml223 mm95 mn976 mo853 mp1 mq596 mr222 ms1 mt356 mu230 mv960 mw265 mx52 my60 mz258 na264 nc687 ne227 nf672 ng234 ni505 nl31 no47 np977 nr674 nu683 nz64 om968 pa507 pe51 pf689 pg675 ph63 pk92 pl48 pm508 pr1 ps970 pt351 pw680 py595 qa974 re262 ro40 rs381 ru7 rw250 sa966 sb677 sc248 sd249 se46 sg65 sh290 si386 sj47 sk421 sl232 sm378 sn221 so252 sr597 ss211 st239 sv503 sx1 sy963 sz268 tc1 td235 tg228 th66 tj992 tk690 tl670 tm993 tn216 to676 tr90 tt1 tv688 tw886 tz255 ua380 ug256 us1 uy598 uz998 va39 vc1 ve58 vg1 vi1 vn84 vu678 wf681 ws685 xk383 ye967 yt262 za27 zm260 zw263'
+// ── Phone country code: every region libphonenumber dials (phone.js, scripts/gen-phone.py), names from the browser (Intl) ──
 const regionName = new Intl.DisplayNames(['en'], { type: 'region' })
-const CC = DIAL.split(' ').map(x => { const iso = x.slice(0, 2), dial = x.slice(2); return { iso, dial, name: regionName.of(iso.toUpperCase()) } })
+const CC = Object.entries(PHONE).map(([iso, [dial]]) => ({ iso, dial, name: regionName.of(iso.toUpperCase()) }))
   .sort((a, b) => a.name.localeCompare(b.name))
 const ccPop = $('ccPop'), ccBtn = $('ccBtn'), ccSearch = $('ccSearch'), ccList = $('ccList'), phoneIn = leadForm.elements.phone
 // The visitor's region from the browser language (en-IN -> India), else the USA
@@ -549,17 +582,23 @@ setCC(cc)
 lead.addEventListener('cancel', e => e.preventDefault())   // the form comes first: no Esc, no backdrop close
 leadForm.addEventListener('submit', async e => {
   e.preventDefault()
-  const f = leadForm.elements, bad = []
-  const national = f.phone.value.replace(/\D/g, '')
-  const phoneOk = /^[\d\s().-]+$/.test(f.phone.value.trim()) && national.length >= 4 && cc.dial.length + national.length <= 15
-  for (const [name, label, ok] of [['name', 'your name', !!f.name.value.trim()], ['company', 'your company', !!f.company.value.trim()],
-    ['email', 'a work email', !!f.email.value.trim() && f.email.checkValidity()], ['phone', 'a phone number', phoneOk]]) {
-    f[name].setAttribute('aria-invalid', !ok); if (!ok) bad.push(label)
+  const f = leadForm.elements, missing = [], problems = []
+  // An empty field is listed; a filled one that fails its check shows that check's message
+  for (const [name, label, problem] of [
+    ['name', 'your name', () => /\p{L}/u.test(f.name.value) ? '' : 'Enter your name.'],
+    ['company', 'your company', () => /[\p{L}\d]/u.test(f.company.value) ? '' : 'Enter your company name.'],
+    ['email', 'a work email', () => emailProblem(f.email.value)],
+    ['phone', 'a phone number', () => phoneProblem(cc, f.phone.value)]]) {
+    const empty = !f[name].value.trim(), msg = empty ? '' : problem()
+    f[name].setAttribute('aria-invalid', empty || !!msg); if (empty) missing.push(label); else if (msg) problems.push(msg)
   }
-  if (bad.length) { leadError(`Add ${bad.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`); leadForm.querySelector('[aria-invalid="true"]').focus(); return }
+  if (missing.length || problems.length) {
+    leadError(missing.length ? `Add ${missing.join(', ').replace(/, ([^,]*)$/, ' and $1')}.` : problems[0])
+    leadForm.querySelector('[aria-invalid="true"]').focus(); return
+  }
   const btn = $('leadSubmit'); btn.setAttribute('aria-busy', 'true'); leadError('')
   try {
-    await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: `+${cc.dial} ${f.phone.value.trim()}`, country: Z.cur().name, fax: f.fax.value })
+    await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: `+${cc.dial} ${f.phone.value.trim()}`, country: Z.cur().name, fax: f.fax.value, elapsed: Date.now() - leadAt })
     try { localStorage.setItem(LEAD_KEY, '1') } catch {}
     Z.unlocked = true; closeDialog(lead); reveal()
   } catch (err) {
