@@ -115,17 +115,17 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .req__site-text b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .req__site-text small { font-size: 12px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Phone with a country code picker: one control (code button + number); the list is a popover in the top layer, so the dialog never clips it */
-.tel { display: flex; align-items: center; height: 40px; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--gray-300); transition-property: box-shadow; transition-duration: 150ms; transition-timing-function: var(--ease-std); }
-.tel:hover { box-shadow: inset 0 0 0 1px var(--gray-400); }
-.tel:focus-within { box-shadow: inset 0 0 0 1px var(--blue), 0 0 0 3px var(--blue-50); }
-.tel:has([aria-invalid='true']) { box-shadow: inset 0 0 0 1px var(--red), 0 0 0 3px var(--red-bg); }
-.tel__cc { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 8px 0 12px; border: 0; border-right: 1px solid var(--hair); border-radius: 10px 0 0 10px; background: none; color: var(--gray-900); font: inherit; font-size: 14px; cursor: pointer; outline: 0; }
+.tel { box-sizing: border-box; display: flex; align-items: center; height: 40px; border: 1px solid var(--gray-300); border-radius: 10px; background: var(--surface); transition-property: border-color, box-shadow; transition-duration: 150ms; transition-timing-function: var(--ease-std); }
+.tel:hover { border-color: var(--gray-400); }
+.tel:focus-within, .tel:has([aria-expanded='true']) { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-50); }
+.tel:has([aria-invalid='true']) { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
+.tel__cc { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 8px 0 11px; border: 0; border-right: 1px solid var(--hair); border-radius: 9px 0 0 9px; background: none; color: var(--gray-900); font: inherit; font-size: 14px; cursor: pointer; outline: 0; }
 .tel__cc:hover, .tel__cc[aria-expanded='true'] { background: var(--surface-2); }
 .tel__cc:focus-visible { background: var(--blue-25); }
 .tel__cc .flag { width: 20px; height: 15px; border-radius: 3px; box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08); object-fit: cover; }
 .tel__cc svg { color: var(--gray-500); transition-property: rotate; transition-duration: 150ms; transition-timing-function: var(--ease-std); }
 .tel__cc[aria-expanded='true'] svg { rotate: 180deg; }
-.req .tel .input { flex: 1; min-width: 0; height: 100%; padding: 0 12px 0 10px; border-radius: 0 10px 10px 0; background: none; box-shadow: none; }
+.req .tel .input { flex: 1; min-width: 0; height: 100%; padding: 0 12px 0 10px; border-radius: 0 9px 9px 0; background: none; box-shadow: none; }
 .cc { position: fixed; inset: auto; margin: 0; padding: 0; border: 0; border-radius: 14px; background: var(--surface); color: var(--gray-900); box-shadow: var(--float-shadow); overflow: hidden; }
 .cc:popover-open { display: flex; flex-direction: column; animation: cc-in 150ms var(--ease-out) both; }
 @keyframes cc-in { from { opacity: 0; translate: 0 -4px; scale: 0.98; } }
@@ -145,6 +145,28 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .cc__item.is-active { background: var(--gray-100); }
 .cc__empty { padding: 18px 10px; color: var(--gray-500); font-size: 13px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .cc:popover-open { animation: none; } }
+/* Gate: until the lead form is sent the page is a soft morphing gradient behind the form; then the map's dot sweep
+   plays, and the header and footer rise in after it */
+.morph { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 700ms var(--ease-out); }
+.is-gated .morph { opacity: 1; }
+.morph i { position: absolute; width: 62vmax; height: 62vmax; border-radius: 50%; filter: blur(90px); opacity: .42; animation: morph 24s var(--ease-std) infinite alternate; }
+.morph i:nth-child(1) { left: -18vmax; top: -24vmax; background: #7b9aff; }
+.morph i:nth-child(2) { right: -24vmax; top: 6vmax; background: #1b58ff; opacity: .22; animation-duration: 28s; animation-delay: -8s; }
+.morph i:nth-child(3) { left: 16vmax; bottom: -36vmax; background: #b9c8ff; opacity: .5; animation-duration: 32s; animation-delay: -14s; }
+@keyframes morph {
+  0% { translate: 0 0; scale: 1; border-radius: 42% 58% 60% 40% / 45% 40% 60% 55%; }
+  50% { translate: 9vmax 6vmax; scale: 1.15; border-radius: 60% 40% 35% 65% / 55% 60% 40% 45%; }
+  100% { translate: -7vmax 10vmax; scale: .94; border-radius: 45% 55% 50% 50% / 60% 45% 55% 40%; }
+}
+.is-gated .fit { opacity: 0; }
+#lead::backdrop { background: transparent; backdrop-filter: none; }
+.is-reveal .fit__stage { animation: reveal-fade 400ms var(--ease-out) both; }
+.is-reveal .nav, .is-reveal .fit__foot { animation: reveal-rise 500ms var(--ease-out) both; }
+.is-reveal .nav { animation-delay: 1300ms; }
+.is-reveal .fit__foot { animation-delay: 1500ms; }
+@keyframes reveal-fade { from { opacity: 0; } }
+@keyframes reveal-rise { from { opacity: 0; translate: 0 8px; } }
+@media (prefers-reduced-motion: reduce) { .morph i, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
 .req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
 .req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
@@ -196,6 +218,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 </style>
 </head>
 <body>
+<div class="morph" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="fit">
   <header class="nav">
     <div class="nav__title">
@@ -332,6 +355,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 // Leave empty while there is no sheet: requests are then simulated and logged to the console.
 const LEAD_KEY = 'zapyd-rates-lead'
 try { Z.unlocked = !!localStorage.getItem(LEAD_KEY) } catch { Z.unlocked = false }
+if (!Z.unlocked) document.body.classList.add('is-gated')
 const REQUEST_URL = 'https://script.google.com/macros/s/AKfycbxJJ1aZRZ_dYcX0BOOMKBD1cPL0wpxeyZQGlgmeE1uqpSUi5w6k7fCiQrsrHWDQpWCC/exec'
 
 Z.boot()
@@ -476,11 +500,11 @@ const setActive = i => {
 const filterCC = () => {
   const q = ccSearch.value.trim().toLowerCase().replace(/^\+/, ''), digits = /^\d+$/.test(q)
   shown = !q ? CC : CC.filter(c => digits ? c.dial.startsWith(q) : c.name.toLowerCase().includes(q) || c.iso === q)
-  if (digits) shown = [...shown].sort((a, b) => (a.dial === q ? 0 : 1) - (b.dial === q ? 0 : 1))
+  const rank = c => digits ? (c.dial === q ? 0 : 1) : c.name.toLowerCase().startsWith(q) || c.iso === q ? 0 : 1
+  if (q) shown = [...shown].sort((a, b) => rank(a) - rank(b))   // exact code, or name start, first
   const on = new Set(shown)
   items.forEach((el, i) => { el.hidden = !on.has(CC[i]) })
-  if (digits) shown.forEach(c => ccList.insertBefore(items[CC.indexOf(c)], empty))   // exact code first
-  else CC.forEach((c, i) => ccList.insertBefore(items[i], empty))
+  ;(q ? shown : CC).forEach(c => ccList.insertBefore(items[CC.indexOf(c)], empty))
   empty.hidden = shown.length > 0
   setActive(q ? 0 : shown.indexOf(cc))
 }
@@ -489,7 +513,7 @@ const placeCC = () => {
   const r = ccBtn.parentElement.getBoundingClientRect(), w = Math.max(r.width, 300), below = innerHeight - r.bottom - 18
   const up = below < 240 && r.top - 18 > below
   ccPop.classList.toggle('is-up', up)
-  Object.assign(ccPop.style, { width: `${w}px`, maxHeight: `${Math.min(320, up ? r.top - 18 : below)}px`, left: `${Math.max(12, Math.min(r.left, innerWidth - w - 12))}px`,
+  Object.assign(ccPop.style, { width: `${w}px`, maxHeight: `${Math.min(320, up ? r.top - 18 : below)}px`, left: `${Math.max(12, Math.min(r.right - w, innerWidth - w - 12))}px`,
     top: up ? 'auto' : `${r.bottom + 6}px`, bottom: up ? `${innerHeight - r.top + 6}px` : 'auto' })
 }
 ccPop.addEventListener('beforetoggle', e => { if (e.newState === 'open') { ccSearch.value = ''; filterCC(); placeCC() } })
@@ -537,13 +561,18 @@ leadForm.addEventListener('submit', async e => {
   try {
     await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: `+${cc.dial} ${f.phone.value.trim()}`, country: Z.cur().name, fax: f.fax.value })
     try { localStorage.setItem(LEAD_KEY, '1') } catch {}
-    Z.unlocked = true; closeDialog(lead)
+    Z.unlocked = true; closeDialog(lead); reveal()
   } catch (err) {
     leadError("Couldn't send. Check your connection and try again.")
   } finally { btn.removeAttribute('aria-busy') }
 })
 
-Z.map(mapEl, { onPick: open, onRequest: openRequest })
+const world = Z.map(mapEl, { onPick: open, onRequest: openRequest })
+// After the form: the gradient fades, the map's dot sweep replays, then the header and footer rise in
+const reveal = () => {
+  document.body.classList.replace('is-gated', 'is-reveal'); world.intro()
+  setTimeout(() => document.body.classList.remove('is-reveal'), 2100)
+}
 $('open').addEventListener('click', open)
 if (!Z.unlocked) open()
 $('close').addEventListener('click', close)
