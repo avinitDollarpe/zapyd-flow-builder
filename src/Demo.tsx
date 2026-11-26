@@ -51,27 +51,17 @@ interface Country {
   alpha3: string
   sample: string
 }
-// Phone countries. Each maps to the market whose currency it uses; the
-// Eurozone market is offered through a few of its countries.
+// Phone countries, one per market. Each maps to the market whose currency it uses.
 const COUNTRIES: Country[] = [
   { iso2: 'in', name: 'India', dial: '+91', fiat: 'INR', alpha3: 'IND', sample: '98765 43210' },
   { iso2: 'us', name: 'United States', dial: '+1', fiat: 'USD', alpha3: 'USA', sample: '212 555 0123' },
-  { iso2: 'gb', name: 'United Kingdom', dial: '+44', fiat: 'GBP', alpha3: 'GBR', sample: '7700 900123' },
   { iso2: 'ae', name: 'United Arab Emirates', dial: '+971', fiat: 'AED', alpha3: 'ARE', sample: '50 123 4567' },
-  { iso2: 'sg', name: 'Singapore', dial: '+65', fiat: 'SGD', alpha3: 'SGP', sample: '8123 4567' },
-  { iso2: 'hk', name: 'Hong Kong', dial: '+852', fiat: 'HKD', alpha3: 'HKG', sample: '5123 4567' },
+  { iso2: 'bd', name: 'Bangladesh', dial: '+880', fiat: 'BDT', alpha3: 'BGD', sample: '1712 345678' },
   { iso2: 'cn', name: 'China', dial: '+86', fiat: 'CNY', alpha3: 'CHN', sample: '131 2345 6789' },
+  { iso2: 'id', name: 'Indonesia', dial: '+62', fiat: 'IDR', alpha3: 'IDN', sample: '812 3456 7890' },
   { iso2: 'ph', name: 'Philippines', dial: '+63', fiat: 'PHP', alpha3: 'PHL', sample: '917 123 4567' },
   { iso2: 'vn', name: 'Vietnam', dial: '+84', fiat: 'VND', alpha3: 'VNM', sample: '912 345 678' },
   { iso2: 'ng', name: 'Nigeria', dial: '+234', fiat: 'NGN', alpha3: 'NGA', sample: '802 123 4567' },
-  { iso2: 'mx', name: 'Mexico', dial: '+52', fiat: 'MXN', alpha3: 'MEX', sample: '55 1234 5678' },
-  { iso2: 'br', name: 'Brazil', dial: '+55', fiat: 'BRL', alpha3: 'BRA', sample: '11 91234 5678' },
-  { iso2: 'co', name: 'Colombia', dial: '+57', fiat: 'COP', alpha3: 'COL', sample: '300 123 4567' },
-  { iso2: 'de', name: 'Germany', dial: '+49', fiat: 'EUR', alpha3: 'DEU', sample: '1512 3456789' },
-  { iso2: 'fr', name: 'France', dial: '+33', fiat: 'EUR', alpha3: 'FRA', sample: '6 12 34 56 78' },
-  { iso2: 'es', name: 'Spain', dial: '+34', fiat: 'EUR', alpha3: 'ESP', sample: '612 34 56 78' },
-  { iso2: 'it', name: 'Italy', dial: '+39', fiat: 'EUR', alpha3: 'ITA', sample: '312 345 6789' },
-  { iso2: 'nl', name: 'Netherlands', dial: '+31', fiat: 'EUR', alpha3: 'NLD', sample: '6 12345678' },
 ]
 
 interface User {
@@ -201,6 +191,8 @@ function onboarding(u: User): JStep[] {
     )
   } else {
     const m = market(c.fiat)!
+    // A PAYOUT customer is the sender of its own payout: it sends the default rail's sender fields.
+    const ben = m.rails[0].beneficiary ?? []
     steps.push(
       {
         n: 0,
@@ -221,10 +213,14 @@ function onboarding(u: User): JStep[] {
         phase: 'kyc',
         kind: 'api',
         title: 'Add the address',
-        text: m.address.length ? `${c.name} needs ${m.address.map((a) => `\`${a}\``).join(', ')}.` : 'Some payout methods need the address.',
+        text: `${c.name} needs ${m.address.map((a) => `\`${a}\``).join(', ')}${ben.length ? ', and `beneficiary_identifiers`: the sender details of a customer paid out to its own account' : ''}.`,
         method: 'POST',
         path: '/cms/api/v1/kyc/add-data',
-        body: { customer_id: ID.payer, ...m.sample!.address },
+        body: {
+          customer_id: ID.payer,
+          ...m.sample!.address,
+          ...(ben.length ? { beneficiary_identifiers: Object.fromEntries(ben.map((k) => [k, m.sample!.beneficiary[k]])) } : {}),
+        },
         docs: '/api-reference-exchange/endpoint/kyc/add-data',
       },
       app('kyc-done', 'kyc-done', 'kyc', 'Ready for payouts', 'The user can now receive payouts. They never upload a document.'),
@@ -278,7 +274,7 @@ function transfer(o: Opts, u: User): { flow?: Flow; steps: JStep[] } {
 
 // ponytail: indicative USD rates so quotes look right; not live. Fine for a demo.
 const RATE: Record<string, number> = {
-  USD: 1, INR: 88.2, MXN: 18.35, BRL: 5.32, EUR: 0.857, GBP: 0.745, COP: 3870, PHP: 57.9, NGN: 1480, SGD: 1.29, AED: 3.6725, HKD: 7.78, CNY: 7.12, VND: 25900,
+  USD: 1, INR: 88.2, AED: 3.6725, BDT: 122, CNY: 7.12, IDR: 16600, NGN: 1480, PHP: 57.9, VND: 25900,
 }
 const WALLET: Record<string, string> = {
   tron: 'TXqH4MnDw46f3yyrRwau3JF92Y1ie3pAXf',
@@ -322,7 +318,7 @@ const HIDDEN = new Set([
   'selfie_url', 'registered_date', 'alpha_3_country_code', 'country_code', 'document_type', 'nationality', 'residence_country', 'source_of_funds', 'id_type',
 ])
 const WORD: Record<string, string> = {
-  id: 'ID', ifsc: 'IFSC', vpa: 'UPI ID', mx: '', br: '', clabe: 'CLABE', cpf: 'CPF', swift: 'SWIFT', dob: 'date of birth', utr: 'UTR', pan: 'PAN', doc: 'document',
+  id: 'ID', ifsc: 'IFSC', vpa: 'UPI ID', swift: 'SWIFT', dob: 'date of birth', utr: 'UTR', pan: 'PAN', doc: 'document', beneficiary: '',
 }
 const LABEL: Record<string, string> = {
   transaction_reference_id: 'Bank reference (UTR)',
@@ -429,7 +425,7 @@ function respond(st: Step, body: Json = {}, c: Ctx): Json {
   }
   if (path === '/kyc/remitter/create') {
     d.full_name = `${body.first_name} ${body.last_name}`
-    d.email = null
+    d.email = body.email ?? null
     d.document_type = body.id_type
     d.created_at = now().replace('Z', '+00:00')
   }
@@ -1406,13 +1402,16 @@ function KycStart(p: ScreenProps & { country: Country }) {
         { icon: 'book', name: 'Identity document', desc: docsFor(c).map((d) => d.name).join(' or ') },
         { icon: 'user-round', name: 'Selfie', desc: 'A quick liveness check' },
       ]
-    : [{ icon: 'map-pin', name: 'Home address', desc: `In ${c.name}. No documents needed.` }]
+    : [
+        { icon: 'map-pin', name: 'Home address', desc: `In ${c.name}. No documents needed.` },
+        ...(market(c.fiat)!.rails[0].beneficiary?.length ? [{ icon: 'id-card', name: 'ID details', desc: 'Your ID number and date of birth, typed in' }] : []),
+      ]
   return (
     <form className="kscreen" onSubmit={(e) => e.preventDefault()}>
       <div className="kbody">
         <div className="khead">
           <p className="ktitle">Verify your identity</p>
-          <p className="ksub">{full ? `${c.name} KYC takes about two minutes. Have these ready:` : `For payouts in ${c.name}, Zapyd only needs your address.`}</p>
+          <p className="ksub">{full ? `${c.name} KYC takes about two minutes. Have these ready:` : `For payouts in ${c.name}, Zapyd needs a few details. No documents.`}</p>
         </div>
         <div className="kdocs">
           {needs.map((n) => (

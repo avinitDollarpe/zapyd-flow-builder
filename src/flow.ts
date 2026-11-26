@@ -6,9 +6,13 @@ export interface Rail {
   method: string
   payment_method?: string
   identifiers: string[] | Record<string, string>
+  // Identifiers that may be left out.
+  optional?: string[]
+  // beneficiary_identifiers for a PAYOUT customer (the sender of its own
+  // payout) and for a REMITTANCE_PAYOUT customer (only the receiver: the
+  // remitter is the sender).
   beneficiary?: string[]
-  // The method's own address fields, when they differ from the market's.
-  address?: string[]
+  remittance?: string[]
 }
 export interface Market {
   fiat: string
@@ -17,20 +21,28 @@ export interface Market {
   flag: string
   alpha3: string
   guide: string
+  // kyc/add-data address fields for PAYOUT and REMITTANCE_PAYOUT.
   address: string[]
+  remittance_address?: string[]
   payin: null | {
     methods: string[]
     reference: 'required' | 'optional'
     kyc: Kyc[]
     customer: Record<string, string>
   }
-  onboarding: 'standard' | 'payout-only'
+  onboarding?: 'standard' | 'payout-only'
   sample?: {
     name: string
+    // Extra customer/create fields the market needs: email and phone outside India.
+    customer?: Record<string, string>
     address: Record<string, string>
     beneficiary: Record<string, string>
     ids: Record<string, string>
   }
+  // A sample kyc/remitter/create body for a remittance payout into this
+  // market, with the remitter fields the market needs.
+  remitter?: Record<string, string>
+  // Empty for a payin-only market.
   rails: Rail[]
 }
 export interface Coin {
@@ -59,7 +71,7 @@ export interface Opts {
 
 export const DEFAULTS: Opts = {
   src: 'USDC',
-  dst: 'MXN',
+  dst: 'INR',
   network: 'polygon',
   payinMethod: '',
   rail: '',
@@ -81,14 +93,9 @@ export const NETWORKS: Record<string, string> = {
 const SYMBOL: Record<string, string> = { INR: '₹', USD: '$' }
 const PAYIN_AMOUNT: Record<string, string> = { INR: '10000', USD: '1000' }
 
-// Identifier values the market sample doesn't cover (second rails).
-const EXTRA_IDS: Record<string, Record<string, string>> = {
-  COP: { phone_number: '3001234567' },
-  EUR: { bank_name: 'Commerzbank' },
-  USD: { swift_code: 'CHASUS33' },
-}
-
 export const isFiat = (code: string) => !!market(code)
+// A market Zapyd pays out in (the USA runs payins only).
+const payoutMarket = (code: string) => (market(code)?.rails.length ? market(code) : undefined)
 
 // What each side can offer, and which options apply, for the current choice.
 export interface Choices {
@@ -97,33 +104,25 @@ export interface Choices {
   rails: { method: string; disabled?: string }[]
   kyc: Kyc[]
   funding: boolean
-  // A standard payout or a remittance payout. Into INR and VND from any other
-  // source (the remitter is created with kyc/remitter/create); into any other
-  // market from a fiat source (the sender is the customer who paid in, with full KYC).
+  // A standard payout or a remittance payout, in every payout market and from
+  // any source. The remittance sender is a remitter from kyc/remitter/create.
   payoutApi: boolean
   bridge: boolean
 }
 
-// Markets whose remittance sender is a remitter from kyc/remitter/create.
-const REMITTER_MARKETS = ['INR', 'VND']
-
 export function choices(o: Opts): Choices {
   const s = market(o.src)
-  const d = market(o.dst)
+  const d = payoutMarket(o.dst)
   const asset = s ? (d ? o.bridge : o.dst) : o.src
-  const rda = d?.fiat === 'INR'
   const kyc: Kyc[] = []
   if (s?.payin) kyc.push(...s.payin.kyc)
   return {
     networks: coin(asset)?.networks ?? [],
     payinMethods: s?.payin?.methods ?? [],
-    rails: (d?.rails ?? []).map((r) => ({
-      method: r.method,
-      disabled: rda && r.method === 'UPI' ? 'UPI payouts need a customer with full KYC' : undefined,
-    })),
+    rails: (d?.rails ?? []).map((r) => ({ method: r.method })),
     kyc: [...new Set(kyc)],
     funding: !!d,
-    payoutApi: !!d && s?.fiat !== d.fiat && (REMITTER_MARKETS.includes(d.fiat) || !!s),
+    payoutApi: !!d && s?.fiat !== d.fiat,
     bridge: !!(s && d),
   }
 }
@@ -139,7 +138,6 @@ export function normalize(o: Opts): Opts {
   const n = { ...o }
   const c = choices(n)
   if (!c.payinMethods.includes(n.payinMethod)) n.payinMethod = c.payinMethods[0] ?? ''
-  // The payout API is a choice only where a remittance payout has a sender.
   if (!c.payoutApi) n.purpose = 'payout'
   const c2 = choices(n)
   if (!c2.networks.includes(n.network)) n.network = c2.networks[0] ?? ''
@@ -158,12 +156,13 @@ export function normalize(o: Opts): Opts {
 // USDT is not offered: USDC is the only stablecoin on either side and the bridge.
 export const OFFERED_COINS = ['USDC']
 export const SOURCES = [...OFFERED_COINS, ...MARKETS.filter((m) => m.payin).map((m) => m.fiat)]
-export const DESTINATIONS = [...OFFERED_COINS, ...MARKETS.map((m) => m.fiat)]
+export const DESTINATIONS = [...OFFERED_COINS, ...MARKETS.filter((m) => m.rails.length).map((m) => m.fiat)]
 
 export type FlowKind = 'onramp' | 'offramp' | 'remittance' | 'unsupported'
 export function kindOf(o: Pick<Opts, 'src' | 'dst'>): FlowKind {
   const s = isFiat(o.src)
   const d = isFiat(o.dst)
+  if (d && !payoutMarket(o.dst)) return 'unsupported'
   if (s && d) return o.src === o.dst ? 'unsupported' : 'remittance'
   if (s) return 'onramp'
   if (d) return 'offramp'
@@ -173,14 +172,11 @@ export function kindOf(o: Pick<Opts, 'src' | 'dst'>): FlowKind {
 const RAIL_NAMES: Record<string, string> = {
   ACCOUNT_DETAILS: 'Bank account',
   'BANK-TRANSFER': 'Bank transfer',
-  ACH_PUSH: 'ACH',
+  MOBILE_WALLET: 'Mobile wallet',
   ACH_PULL: 'ACH',
-  DOMESTIC_WIRE: 'Domestic wire',
-  FEDWIRE: 'Fedwire',
   WIRE: 'Wire',
   PESONET: 'PESONet',
   INSTAPAY: 'InstaPay',
-  NEQUI: 'Nequi',
 }
 export const railName = (r: string) => RAIL_NAMES[r] ?? r
 
@@ -202,7 +198,7 @@ export type Side = 'src' | 'dst'
 export function pairFor(o: Opts, side: 'src' | 'dst', code: string): Pick<Opts, 'src' | 'dst'> {
   if (side === 'src') {
     if (code === o.dst) return { src: code, dst: o.src }
-    if (coin(code) && coin(o.dst)) return { src: code, dst: coin(o.src) ? 'MXN' : o.src }
+    if (coin(code) && coin(o.dst)) return { src: code, dst: payoutMarket(o.src) ? o.src : DEFAULTS.dst }
     return { src: code, dst: o.dst }
   }
   if (code === o.src) return { src: SOURCES.includes(o.dst) ? o.dst : 'USDC', dst: code }
@@ -226,19 +222,13 @@ const PAYIN_NOTE: Record<string, string> = {
   RTP: 'Real-time payment to deposit instructions',
 }
 const FIELD: Record<string, string> = {
-  mx_clabe: 'CLABE',
-  br_cpf: 'CPF',
   account_number: 'account number',
   ifsc: 'IFSC',
-  vpa: 'UPI ID',
   swift_code: 'SWIFT',
-  routing_number: 'routing number',
-  sort_code: 'sort code',
   bank_code: 'bank code',
   bank_name: 'bank name',
   account_holder_name: 'holder name',
   account_type: 'account type',
-  phone_number: 'phone number',
 }
 
 export interface StepItem {
@@ -273,7 +263,7 @@ export function stepFor(o: Opts, side: Side, code: string): { title: string; key
       return {
         value: r.method,
         label: railName(r.method) === r.method ? r.method : `${railName(r.method)}`,
-        sub: `Needs ${ids.map((f) => FIELD[f] ?? f.replace(/_/g, ' ')).join(', ')}`,
+        sub: `Needs ${ids.map((f) => (FIELD[f] ?? f.replace(/_/g, ' ')) + (r.optional?.includes(f) ? ' (optional)' : '')).join(', ')}`,
         disabled: c.rails.find((x) => x.method === r.method)?.disabled,
       }
     }),
@@ -352,6 +342,8 @@ export function build(o: Opts): Flow | { unsupported: string } {
   if (!s && !d) return { unsupported: 'Zapyd converts between fiat and stablecoins. Pick a fiat currency on one side.' }
   if (s && !s.payin)
     return { unsupported: `${s.country} runs payouts only, so ${s.fiat} can't be a source. Pick ${MARKETS.filter((m) => m.payin).map((m) => m.fiat).join(' or ')} as the fiat source.` }
+  if (d && !d.rails.length)
+    return { unsupported: `${d.country} runs payins only, so ${d.fiat} can't be a destination. Pick a stablecoin or ${DESTINATIONS.filter((c) => payoutMarket(c)).join(', ')}.` }
   if (s && d && s.fiat === d.fiat)
     return { unsupported: `Sending ${s.fiat} to ${d.fiat} doesn't need a conversion. Pick a different destination currency.` }
 
@@ -397,12 +389,10 @@ export function build(o: Opts): Flow | { unsupported: string } {
   const asset = s ? (d ? o.bridge : o.dst) : o.src
   const net = NETWORKS[o.network] ?? o.network
   const prefunded = !!d && o.funding === 'prefunded'
-  // A remittance payout: into India (RDA) and Vietnam the sender is a remitter
-  // created abroad; elsewhere it's the customer who paid in.
+  // A remittance payout: in every market the sender is a remitter from
+  // kyc/remitter/create. Into India it settles through RDA.
   const remit = !!d && o.purpose === 'remittance'
   const rda = remit && d?.fiat === 'INR'
-  const remitter = remit && REMITTER_MARKETS.includes(d!.fiat)
-  const remitterId = remitter ? ID.remitter : ID.payer
 
   // ---- source
   let col = 0
@@ -625,6 +615,8 @@ export function build(o: Opts): Flow | { unsupported: string } {
 
   // ---- payout leg: onboard the beneficiary
   const rail = d.rails.find((r) => r.method === o.rail) ?? d.rails[0]
+  const capability = remit ? 'REMITTANCE_PAYOUT' : 'PAYOUT'
+  const account = rail.method === 'MOBILE_WALLET' ? 'mobile wallet' : 'bank account'
   const beneficiaryId = rda ? ID.rdaBeneficiary : ID.beneficiary
   const onboardCol = s ? col + 1 : col
   const onboard: Group[] = []
@@ -633,7 +625,6 @@ export function build(o: Opts): Flow | { unsupported: string } {
     // India: a beneficiary without PAYIN whose capability follows the API.
     // A standard payout (PAYOUT) needs the declarations; a remittance payout
     // (REMITTANCE_PAYOUT) needs nothing beyond the customer and the account.
-    const capability = rda ? 'REMITTANCE_PAYOUT' : 'PAYOUT'
     onboard.push(
       group({
         id: 'g-beneficiary',
@@ -702,13 +693,12 @@ export function build(o: Opts): Flow | { unsupported: string } {
       }),
     )
   } else {
-    // Every other market: the country's address and bank fields
+    // Every other market: the country's address and bank fields. A remittance
+    // customer only receives, so it sends fewer: the remitter is the sender.
     const sm = d.sample!
-    const ids = Object.fromEntries(
-      (rail.identifiers as string[]).map((k) => [k, sm.ids[k] ?? EXTRA_IDS[d.fiat]?.[k] ?? '']),
-    )
-    const ben = Object.fromEntries((rail.beneficiary ?? []).map((k) => [k, sm.beneficiary[k] ?? '']))
-    const address = rail.address ?? d.address
+    const ids = Object.fromEntries((rail.identifiers as string[]).map((k) => [k, sm.ids[k] ?? '']))
+    const ben = Object.fromEntries(((remit ? rail.remittance : rail.beneficiary) ?? []).map((k) => [k, sm.beneficiary[k] ?? '']))
+    const address = (remit ? d.remittance_address : d.address) ?? []
     // Vietnam accounts are VERIFIED in the bank/create response.
     const verifiedOnCreate = d.fiat === 'VND'
     onboard.push(
@@ -723,10 +713,10 @@ export function build(o: Opts): Flow | { unsupported: string } {
             returns: beneficiaryId,
             kind: 'api',
             title: 'Create the beneficiary',
-            text: `Without \`PAYIN\` the customer needs no KYC journey, only the fields for \`${remit ? 'REMITTANCE_PAYOUT' : 'PAYOUT'}\`. Payouts to ${d.country} must be enabled for your organization. Save the returned \`id\` as \`customer_id\`.`,
+            text: `Without \`PAYIN\` the customer needs no KYC journey, only the fields for \`${capability}\`.${sm.customer ? ` ${d.country} also needs ${Object.keys(sm.customer).map((k) => `\`${k}\``).join(' and ')}.` : ''} Payouts to ${d.country} must be enabled for your organization. Save the returned \`id\` as \`customer_id\`.`,
             method: 'POST',
             path: '/cms/api/v1/customer/create',
-            body: { capabilities: [remit ? 'REMITTANCE_PAYOUT' : 'PAYOUT'], client_reference_id: 'beneficiary-001', alpha_3_country_code: d.alpha3 },
+            body: { capabilities: [capability], client_reference_id: 'beneficiary-001', alpha_3_country_code: d.alpha3, ...sm.customer },
             docs: '/guides/customers/payout-requirements',
           }),
           step('search', {
@@ -741,8 +731,8 @@ export function build(o: Opts): Flow | { unsupported: string } {
           step('map-pin', {
             id: 'ben-address',
             kind: 'api',
-            title: address.length ? 'Add the address' : 'Verify the beneficiary',
-            text: `This call verifies the customer: it stays \`UNVERIFIED\` until then. ${address.length ? `${d.country} needs ${address.map((a) => `\`${a}\``).join(', ')}` : `${rail.method} needs no address, so send only \`customer_id\``}${Object.keys(ben).length ? ', and the `beneficiary_identifiers` for this rail' : ''}.`,
+            title: address.length ? 'Add the address' : Object.keys(ben).length ? 'Add the beneficiary details' : 'Verify the beneficiary',
+            text: `This call verifies the customer: it stays \`UNVERIFIED\` until then. ${address.length ? `A \`${capability}\` customer in ${d.country} needs ${address.map((a) => `\`${a}\``).join(', ')}` : `A \`${capability}\` customer in ${d.country} needs no address`}${Object.keys(ben).length ? `, and the \`beneficiary_identifiers\` for ${remit ? 'a receiver' : 'a sender of its own payout'}` : address.length ? '' : ', so send only `customer_id`'}.`,
             method: 'POST',
             path: '/cms/api/v1/kyc/add-data',
             body: {
@@ -759,7 +749,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
       group({
         id: 'g-bank',
         col: onboardCol,
-        title: 'Bank account',
+        title: account[0].toUpperCase() + account.slice(1),
         tag: { label: rail.method, tone: 'gray' },
         rows: [
           step('landmark', {
@@ -779,8 +769,11 @@ export function build(o: Opts): Flow | { unsupported: string } {
     )
   }
 
-  if (remitter) {
-    const fromUs = s?.fiat === 'USD'
+  if (remit) {
+    const r = d.remitter!
+    // Fields beyond the ones every remitter sends, which this market needs.
+    const BASE = ['first_name', 'last_name', 'dob', 'nationality', 'residence_country', 'city', 'address_line', 'phone', 'source_of_funds', 'id_type', 'id_number']
+    const more = Object.keys(r).filter((k) => !BASE.includes(k))
     onboard.push(
       group({
         id: 'g-remitter',
@@ -793,36 +786,10 @@ export function build(o: Opts): Flow | { unsupported: string } {
             returns: ID.remitter,
             kind: 'api',
             title: 'Create the remitter',
-            text: `The sender, living outside India.${s ? ' Use the identity of the customer who paid in.' : ''} Idempotent on \`id_type\` and \`id_number\`. Save the returned \`id\` as \`remitter_id\`.`,
+            text: `The sender, who lives outside India. ${more.length ? `A remittance to ${d.country} also needs the remitter's ${more.map((k) => `\`${k}\``).join(', ')}${d.fiat === 'IDR' ? ', and `id_type` `PASSPORT`' : ''}. ` : ''}Idempotent on \`id_type\` and \`id_number\`. Save the returned \`id\` as \`remitter_id\`.`,
             method: 'POST',
             path: '/cms/api/v1/kyc/remitter/create',
-            body: fromUs
-              ? {
-                  first_name: 'Jane',
-                  last_name: 'Doe',
-                  dob: '1990-01-15',
-                  nationality: 'USA',
-                  residence_country: 'USA',
-                  city: 'New York',
-                  address_line: '350 Fifth Avenue',
-                  phone: '+12125550123',
-                  source_of_funds: 'salary',
-                  id_type: 'PASSPORT',
-                  id_number: 'P1234567',
-                }
-              : {
-                  first_name: 'Siva',
-                  last_name: 'Raj',
-                  dob: '1990-01-15',
-                  nationality: 'IND',
-                  residence_country: 'ARE',
-                  city: 'Dubai',
-                  address_line: 'Building 4, Al Barsha 1',
-                  phone: '+971501234567',
-                  source_of_funds: 'salary',
-                  id_type: 'PASSPORT',
-                  id_number: 'P1234567',
-                },
+            body: r,
             docs: '/api-reference-exchange/endpoint/kyc/remitter/create',
           }),
         ],
@@ -859,11 +826,11 @@ export function build(o: Opts): Flow | { unsupported: string } {
     ? {
         customer_id: beneficiaryId,
         bank_id: ID.bank,
-        remitter_id: remitterId,
+        remitter_id: ID.remitter,
         asset,
         fiat: d.fiat,
         network: o.network,
-        payment_method: rda ? 'IMPS' : paymentMethod,
+        payment_method: paymentMethod,
         ...(rda ? { receiving_amount: '5100' } : { sending_amount: '60' }),
         is_self_transfer: false,
         risk_parameters: RISK,
@@ -888,10 +855,11 @@ export function build(o: Opts): Flow | { unsupported: string } {
       title: remit ? 'Create a remittance quotation' : 'Create a payout quotation',
       text: [
         remit ? `Send exactly one amount: \`receiving_amount\` fixes the ${d.fiat} the beneficiary gets, \`sending_amount\` fixes the crypto.` : '',
-        remit && !remitter ? '`remitter_id` is the sender: the `customer_id` of the customer who paid in. Outside India and Vietnam the sender must be a `VERIFIED` customer with full KYC.' : '',
+        remit ? '`remitter_id` is the sender: the remitter\'s `id` from `kyc/remitter/create`.' : '',
+        `\`payment_method\` for ${d.fiat} is \`${paymentMethod}\`.`,
         d.fiat === 'INR'
           ? ''
-          : `\`payment_method\` is the bank account's method (\`${paymentMethod}\`). [\`GET /pos/api/v1/payout/configuration\`](${DOCS}/api-reference-exchange/endpoint/payout/config/configuration) lists the methods and limits for ${d.fiat}.`,
+          : `[\`GET /pos/api/v1/payout/configuration\`](${DOCS}/api-reference-exchange/endpoint/payout/config/configuration) lists the methods and limits for ${d.fiat}.`,
         prefunded ? '`network` must be your prefunded wallet\'s `network` from `GET /pos/api/v1/payout/balance`.' : '',
         prefunded ? '' : 'The response has the `wallet_address` to fund and `expiry_time`.',
       ]
@@ -934,7 +902,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
     ? {
         quotation_id: ID.payoutQuote,
         customer_id: beneficiaryId,
-        remitter_id: remitterId,
+        remitter_id: ID.remitter,
         ...(prefunded ? {} : { transaction_hash: '0x9f2c3b1a...' }),
       }
     : {
@@ -986,7 +954,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
     tag: { label: s ? 'Cross-border' : 'Fiat', tone: 'blue' },
     dashed: true,
     rows: [
-      { id: 'r-dst', icon: `flag:${d.fiat}`, label: d.currency, sub: `${d.country} bank account`, kind: 'endpoint' },
+      { id: 'r-dst', icon: `flag:${d.fiat}`, label: d.currency, sub: `${d.country} ${account}`, kind: 'endpoint' },
       { id: 'r-dst-rail', icon: 'landmark', label: `Paid via ${railName(rail.method)}`, sub: rda ? 'Remittance payout through RDA' : remit ? 'Remittance payout' : s ? 'Cross-border payout' : 'Payout', kind: 'info' },
     ],
   })
@@ -994,7 +962,7 @@ export function build(o: Opts): Flow | { unsupported: string } {
 
   const remitLabel = rda ? 'remittance payout through RDA' : 'remittance payout'
   const kindLabel = remit ? (s ? `Cross-border transfer, ${remitLabel}` : remitLabel[0].toUpperCase() + remitLabel.slice(1)) : s ? 'Cross-border transfer' : 'Offramp'
-  const to = `${d.fiat} to ${/^[AEIO]/.test(d.country) ? 'an' : 'a'} ${d.country} bank account via ${railName(rail.method)}`
+  const to = `${d.fiat} to ${/^[AEIO]/.test(d.country) ? 'an' : 'a'} ${d.country} ${account} via ${railName(rail.method)}`
   return {
     title: s ? `${s.fiat} to ${d.fiat}` : `${asset} to ${d.fiat}`,
     summary: `${kindLabel}. ${

@@ -1,40 +1,94 @@
 {
  "markets": [
   {
-   "fiat": "BRL",
-   "currency": "Brazilian Real",
-   "country": "Brazil",
-   "flag": "🇧🇷",
-   "alpha3": "BRA",
-   "guide": "/guides/country-guides/brazil/overview",
+   "fiat": "BDT",
+   "currency": "Bangladeshi Taka",
+   "country": "Bangladesh",
+   "flag": "🇧🇩",
+   "alpha3": "BGD",
+   "guide": "/guides/country-guides/geographies",
    "address": [
     "street",
     "city",
     "state_province",
     "postal_code"
    ],
+   "remittance_address": [
+    "street",
+    "city",
+    "state_province"
+   ],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
-    "name": "Maria Silva",
-    "address": {
-     "street": "Av. Paulista 1000",
-     "city": "São Paulo",
-     "state_province": "SP",
-     "postal_code": "01310-100"
+    "name": "Rahim Uddin",
+    "customer": {
+     "email": "rahim.uddin@example.com",
+     "phone": "1712345678"
     },
-    "beneficiary": {},
+    "address": {
+     "street": "House 12, Road 5, Dhanmondi",
+     "city": "Dhaka",
+     "state_province": "Dhaka",
+     "postal_code": "1205"
+    },
+    "beneficiary": {
+     "beneficiary_gender": "MALE",
+     "beneficiary_occupation": "Teacher",
+     "beneficiary_nationality": "BGD",
+     "beneficiary_dob": "1990-03-21",
+     "beneficiary_id_doc_type": "NATIONAL_ID",
+     "beneficiary_id_doc_number": "1990123456789",
+     "beneficiary_id_issued_country": "BGD",
+     "beneficiary_source_of_income": "SALARY"
+    },
     "ids": {
-     "br_cpf": "12345678909"
+     "account_holder_name": "Rahim Uddin",
+     "account_number": "01712345678",
+     "wallet_provider": "BKASH"
     }
+   },
+   "remitter": {
+    "first_name": "Karim",
+    "last_name": "Hossain",
+    "dob": "1985-09-10",
+    "nationality": "BGD",
+    "residence_country": "GBR",
+    "city": "London",
+    "address_line": "12 Brick Lane",
+    "phone": "+447700900123",
+    "source_of_funds": "salary",
+    "id_type": "PASSPORT",
+    "id_number": "BX0123456",
+    "email": "karim.hossain@example.com",
+    "gender": "male",
+    "occupation": "Chef",
+    "state": "England",
+    "postal_code": "E1 6RF",
+    "id_issued_country": "BGD"
    },
    "rails": [
     {
-     "method": "PIX",
+     "method": "MOBILE_WALLET",
+     "payment_method": "MOBILE_WALLET",
      "identifiers": [
-      "br_cpf"
+      "account_holder_name",
+      "account_number",
+      "wallet_provider"
      ],
-     "beneficiary": []
+     "beneficiary": [
+      "beneficiary_gender",
+      "beneficiary_occupation",
+      "beneficiary_nationality",
+      "beneficiary_dob",
+      "beneficiary_id_doc_type",
+      "beneficiary_id_doc_number",
+      "beneficiary_id_issued_country",
+      "beneficiary_source_of_income"
+     ],
+     "remittance": [
+      "beneficiary_nationality"
+     ]
     }
    ]
   },
@@ -45,199 +99,58 @@
    "flag": "🇨🇳",
    "alpha3": "CHN",
    "guide": "/guides/country-guides/china/overview",
-   "address": [
-    "street",
-    "city",
-    "state_province",
-    "postal_code"
-   ],
+   "address": [],
+   "remittance_address": [],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
     "name": "Li Wei",
-    "address": {
-     "street": "1 Fuxingmen Inner Street",
-     "city": "Beijing",
-     "state_province": "Beijing",
-     "postal_code": "100818"
+    "customer": {
+     "email": "li.wei@example.com",
+     "phone": "13123456789"
     },
-    "beneficiary": {},
+    "address": {},
+    "beneficiary": {
+     "beneficiary_id_doc_number": "110101199001011234",
+     "beneficiary_native_first_name": "伟",
+     "beneficiary_native_last_name": "李"
+    },
     "ids": {
      "account_holder_name": "Li Wei",
-     "bank_name": "Bank of China",
-     "account_number": "6217850000001234567",
-     "swift_code": "BKCHCNBJ"
+     "account_number": "6217850000001234567"
     }
+   },
+   "remitter": {
+    "first_name": "Li",
+    "last_name": "Na",
+    "dob": "1988-05-20",
+    "nationality": "CHN",
+    "residence_country": "USA",
+    "city": "San Francisco",
+    "address_line": "500 Market Street",
+    "phone": "+14155550123",
+    "source_of_funds": "salary",
+    "id_type": "PASSPORT",
+    "id_number": "E12345678"
    },
    "rails": [
     {
      "method": "WIRE",
+     "payment_method": "BANK_TRANSFER",
      "identifiers": [
       "account_holder_name",
-      "bank_name",
-      "account_number",
-      "swift_code"
-     ],
-     "beneficiary": []
-    }
-   ]
-  },
-  {
-   "fiat": "COP",
-   "currency": "Colombian Peso",
-   "country": "Colombia",
-   "flag": "🇨🇴",
-   "alpha3": "COL",
-   "guide": "/guides/country-guides/colombia/overview",
-   "address": [
-    "street",
-    "city",
-    "state_province",
-    "postal_code"
-   ],
-   "payin": null,
-   "onboarding": "payout-only",
-   "sample": {
-    "name": "Carlos Gómez",
-    "address": {
-     "street": "Carrera 7 # 71-21",
-     "city": "Bogotá",
-     "state_province": "Cundinamarca",
-     "postal_code": "110231"
-    },
-    "beneficiary": {
-     "beneficiary_id_doc_number": "1023456789",
-     "beneficiary_phone_number": "3001234567"
-    },
-    "ids": {
-     "bank_name": "Bancolombia",
-     "account_number": "12345678901",
-     "account_type": "SAVINGS"
-    }
-   },
-   "rails": [
-    {
-     "method": "BANK-TRANSFER",
-     "identifiers": [
-      "bank_name",
-      "account_number",
-      "account_type"
+      "account_number"
      ],
      "beneficiary": [
       "beneficiary_id_doc_number",
-      "beneficiary_phone_number"
+      "beneficiary_native_first_name",
+      "beneficiary_native_last_name"
+     ],
+     "remittance": [
+      "beneficiary_id_doc_number",
+      "beneficiary_native_first_name",
+      "beneficiary_native_last_name"
      ]
-    },
-    {
-     "method": "NEQUI",
-     "identifiers": [
-      "phone_number"
-     ],
-     "beneficiary": [
-      "beneficiary_id_doc_number"
-     ]
-    }
-   ]
-  },
-  {
-   "fiat": "EUR",
-   "currency": "Euro",
-   "country": "Eurozone (SEPA)",
-   "flag": "🇪🇺",
-   "alpha3": "DEU",
-   "guide": "/guides/country-guides/eurozone/overview",
-   "address": [
-    "street",
-    "city",
-    "postal_code"
-   ],
-   "payin": null,
-   "onboarding": "payout-only",
-   "sample": {
-    "name": "Anna Müller",
-    "address": {
-     "street": "Unter den Linden 1",
-     "city": "Berlin",
-     "postal_code": "10117"
-    },
-    "beneficiary": {},
-    "ids": {
-     "account_holder_name": "Anna Müller",
-     "account_number": "DE89370400440532013000",
-     "swift_code": "COBADEFFXXX"
-    }
-   },
-   "rails": [
-    {
-     "method": "SEPA",
-     "identifiers": [
-      "account_holder_name",
-      "account_number",
-      "swift_code"
-     ],
-     "beneficiary": []
-    },
-    {
-     "method": "WIRE",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number",
-      "swift_code"
-     ],
-     "beneficiary": []
-    }
-   ]
-  },
-  {
-   "fiat": "HKD",
-   "currency": "Hong Kong Dollar",
-   "country": "Hong Kong",
-   "flag": "🇭🇰",
-   "alpha3": "HKG",
-   "guide": "/guides/country-guides/hong-kong/overview",
-   "address": [
-    "street",
-    "city"
-   ],
-   "payin": null,
-   "onboarding": "payout-only",
-   "sample": {
-    "name": "Chan Tai Man",
-    "address": {
-     "street": "1 Queen's Road Central",
-     "city": "Hong Kong"
-    },
-    "beneficiary": {},
-    "ids": {
-     "account_holder_name": "Chan Tai Man",
-     "bank_name": "HSBC Hong Kong",
-     "account_number": "123456789001",
-     "swift_code": "HSBCHKHH",
-     "bank_code": "004"
-    }
-   },
-   "rails": [
-    {
-     "method": "CHATS",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number",
-      "swift_code",
-      "bank_code"
-     ],
-     "beneficiary": []
-    },
-    {
-     "method": "WIRE",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number",
-      "swift_code"
-     ],
-     "beneficiary": []
     }
    ]
   },
@@ -249,6 +162,7 @@
    "alpha3": "IND",
    "guide": "/guides/country-guides/india/overview",
    "address": [],
+   "remittance_address": [],
    "payin": {
     "methods": [
      "IMPS",
@@ -266,6 +180,19 @@
     }
    },
    "onboarding": "standard",
+   "remitter": {
+    "first_name": "Siva",
+    "last_name": "Raj",
+    "dob": "1990-01-15",
+    "nationality": "IND",
+    "residence_country": "ARE",
+    "city": "Dubai",
+    "address_line": "Building 4, Al Barsha 1",
+    "phone": "+971501234567",
+    "source_of_funds": "salary",
+    "id_type": "PASSPORT",
+    "id_number": "P1234567"
+   },
    "rails": [
     {
      "method": "ACCOUNT_DETAILS",
@@ -274,57 +201,92 @@
       "account_number": "7627389201",
       "ifsc": "SBIN0001829"
      }
-    },
-    {
-     "method": "UPI",
-     "payment_method": "UPI",
-     "identifiers": {
-      "vpa": "priya@oksbi"
-     }
     }
    ]
   },
   {
-   "fiat": "MXN",
-   "currency": "Mexican Peso",
-   "country": "Mexico",
-   "flag": "🇲🇽",
-   "alpha3": "MEX",
-   "guide": "/guides/country-guides/mexico/overview",
+   "fiat": "IDR",
+   "currency": "Indonesian Rupiah",
+   "country": "Indonesia",
+   "flag": "🇮🇩",
+   "alpha3": "IDN",
+   "guide": "/guides/country-guides/geographies",
    "address": [
     "street",
     "city",
     "state_province",
     "postal_code"
    ],
+   "remittance_address": [],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
-    "name": "José Hernández",
+    "name": "Budi Santoso",
+    "customer": {
+     "email": "budi.santoso@example.com",
+     "phone": "81234567890"
+    },
     "address": {
-     "street": "Paseo de la Reforma 505",
-     "city": "Ciudad de México",
-     "state_province": "CMX",
-     "postal_code": "06500"
+     "street": "Jl. Jenderal Sudirman Kav. 52-53",
+     "city": "Jakarta Selatan",
+     "state_province": "DKI Jakarta",
+     "postal_code": "12190"
     },
     "beneficiary": {
-     "beneficiary_id_doc_number": "HEGJ900115HDFRNS09",
-     "beneficiary_dob": "1990-01-15"
+     "beneficiary_gender": "MALE",
+     "beneficiary_occupation": "Engineer",
+     "beneficiary_nationality": "IDN",
+     "beneficiary_dob": "1991-06-17",
+     "beneficiary_id_doc_type": "NATIONAL_ID",
+     "beneficiary_id_doc_number": "3171011706910001",
+     "beneficiary_id_issued_country": "IDN"
     },
     "ids": {
-     "mx_clabe": "002010077777777771"
+     "account_holder_name": "Budi Santoso",
+     "account_number": "1234567890",
+     "bank_name": "Bank Central Asia",
+     "bank_code": "014"
     }
+   },
+   "remitter": {
+    "first_name": "Siti",
+    "last_name": "Rahmawati",
+    "dob": "1993-08-04",
+    "nationality": "IDN",
+    "residence_country": "SGP",
+    "city": "Singapore",
+    "address_line": "1 Raffles Place",
+    "phone": "+6581234567",
+    "source_of_funds": "salary",
+    "id_type": "PASSPORT",
+    "id_number": "C1234567",
+    "email": "siti.rahmawati@example.com",
+    "gender": "female",
+    "occupation": "Nurse",
+    "state": "Singapore",
+    "postal_code": "048616",
+    "id_issued_country": "IDN"
    },
    "rails": [
     {
-     "method": "SPEI",
+     "method": "ACCOUNT_DETAILS",
+     "payment_method": "BANK_TRANSFER",
      "identifiers": [
-      "mx_clabe"
+      "account_holder_name",
+      "account_number",
+      "bank_name",
+      "bank_code"
      ],
      "beneficiary": [
+      "beneficiary_gender",
+      "beneficiary_occupation",
+      "beneficiary_nationality",
+      "beneficiary_dob",
+      "beneficiary_id_doc_type",
       "beneficiary_id_doc_number",
-      "beneficiary_dob"
-     ]
+      "beneficiary_id_issued_country"
+     ],
+     "remittance": []
     }
    ]
   },
@@ -341,32 +303,77 @@
     "state_province",
     "postal_code"
    ],
+   "remittance_address": [
+    "street",
+    "city",
+    "state_province",
+    "postal_code"
+   ],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
     "name": "Chinedu Okafor",
+    "customer": {
+     "email": "chinedu.okafor@example.com",
+     "phone": "8021234567"
+    },
     "address": {
      "street": "12 Adeola Odeku Street",
      "city": "Lagos",
      "state_province": "Lagos",
      "postal_code": "101241"
     },
-    "beneficiary": {},
+    "beneficiary": {
+     "beneficiary_nationality": "NGA",
+     "beneficiary_dob": "1989-11-02",
+     "beneficiary_id_doc_type": "NIN",
+     "beneficiary_id_doc_number": "12345678901"
+    },
     "ids": {
      "account_holder_name": "Chinedu Okafor",
      "bank_name": "Access Bank",
-     "account_number": "0123456789"
+     "account_number": "0123456789",
+     "bank_code": "044"
     }
+   },
+   "remitter": {
+    "first_name": "Adaeze",
+    "last_name": "Okafor",
+    "dob": "1987-02-28",
+    "nationality": "NGA",
+    "residence_country": "GBR",
+    "city": "London",
+    "address_line": "10 Old Kent Road",
+    "phone": "+447700900456",
+    "source_of_funds": "salary",
+    "id_type": "PASSPORT",
+    "id_number": "A01234567"
    },
    "rails": [
     {
      "method": "BANK-TRANSFER",
+     "payment_method": "BANK_TRANSFER",
      "identifiers": [
       "account_holder_name",
       "bank_name",
-      "account_number"
+      "account_number",
+      "bank_code"
      ],
-     "beneficiary": []
+     "optional": [
+      "bank_code"
+     ],
+     "beneficiary": [
+      "beneficiary_nationality",
+      "beneficiary_dob",
+      "beneficiary_id_doc_type",
+      "beneficiary_id_doc_number"
+     ],
+     "remittance": [
+      "beneficiary_nationality",
+      "beneficiary_dob",
+      "beneficiary_id_doc_type",
+      "beneficiary_id_doc_number"
+     ]
     }
    ]
   },
@@ -383,83 +390,96 @@
     "state_province",
     "postal_code"
    ],
+   "remittance_address": [],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
     "name": "Maria Santos",
+    "customer": {
+     "email": "maria.santos@example.com",
+     "phone": "9171234567"
+    },
     "address": {
      "street": "6750 Ayala Avenue",
      "city": "Makati",
      "state_province": "Metro Manila",
      "postal_code": "1226"
     },
-    "beneficiary": {},
+    "beneficiary": {
+     "beneficiary_gender": "FEMALE",
+     "beneficiary_occupation": "Accountant",
+     "beneficiary_nationality": "PHL",
+     "beneficiary_dob": "1992-07-08",
+     "beneficiary_id_doc_type": "PASSPORT",
+     "beneficiary_id_doc_number": "P1234567A",
+     "beneficiary_id_issued_country": "PHL"
+    },
     "ids": {
      "account_holder_name": "Maria Santos",
      "bank_name": "BDO Unibank",
-     "account_number": "001234567890"
+     "account_number": "001234567890",
+     "bank_code": "010530667"
     }
+   },
+   "remitter": {
+    "first_name": "Maria",
+    "last_name": "Reyes",
+    "dob": "1986-12-03",
+    "nationality": "PHL",
+    "residence_country": "AUS",
+    "city": "Sydney",
+    "address_line": "100 George Street",
+    "phone": "+61412345678",
+    "source_of_funds": "salary",
+    "id_type": "PASSPORT",
+    "id_number": "P7654321B",
+    "email": "maria.reyes@example.com",
+    "gender": "female",
+    "occupation": "Nurse",
+    "state": "NSW",
+    "postal_code": "2000",
+    "id_issued_country": "PHL"
    },
    "rails": [
     {
      "method": "PESONET",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number"
-     ],
-     "beneficiary": []
-    },
-    {
-     "method": "INSTAPAY",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number"
-     ],
-     "beneficiary": []
-    }
-   ]
-  },
-  {
-   "fiat": "SGD",
-   "currency": "Singapore Dollar",
-   "country": "Singapore",
-   "flag": "🇸🇬",
-   "alpha3": "SGP",
-   "guide": "/guides/country-guides/singapore/overview",
-   "address": [
-    "street",
-    "city",
-    "postal_code"
-   ],
-   "payin": null,
-   "onboarding": "payout-only",
-   "sample": {
-    "name": "Tan Wei Ming",
-    "address": {
-     "street": "12 Marina Boulevard",
-     "city": "Singapore",
-     "postal_code": "018982"
-    },
-    "beneficiary": {},
-    "ids": {
-     "account_holder_name": "Tan Wei Ming",
-     "bank_name": "DBS Bank",
-     "account_number": "0123456789",
-     "swift_code": "DBSSSGSG"
-    }
-   },
-   "rails": [
-    {
-     "method": "BANK-TRANSFER",
+     "payment_method": "BANK_TRANSFER",
      "identifiers": [
       "account_holder_name",
       "bank_name",
       "account_number",
-      "swift_code"
+      "bank_code"
      ],
-     "beneficiary": []
+     "beneficiary": [
+      "beneficiary_gender",
+      "beneficiary_occupation",
+      "beneficiary_nationality",
+      "beneficiary_dob",
+      "beneficiary_id_doc_type",
+      "beneficiary_id_doc_number",
+      "beneficiary_id_issued_country"
+     ],
+     "remittance": []
+    },
+    {
+     "method": "INSTAPAY",
+     "payment_method": "BANK_TRANSFER",
+     "identifiers": [
+      "account_holder_name",
+      "bank_name",
+      "account_number",
+      "bank_code"
+     ],
+     "beneficiary": [
+      "beneficiary_gender",
+      "beneficiary_occupation",
+      "beneficiary_nationality",
+      "beneficiary_dob",
+      "beneficiary_id_doc_type",
+      "beneficiary_id_doc_number",
+      "beneficiary_id_issued_country"
+     ],
+     "remittance": []
     }
    ]
   },
@@ -475,71 +495,73 @@
     "city",
     "state_province"
    ],
+   "remittance_address": [
+    "street",
+    "city",
+    "state_province"
+   ],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
     "name": "Ahmed Al Mansoori",
+    "customer": {
+     "email": "ahmed.almansoori@example.com",
+     "phone": "501234567"
+    },
     "address": {
      "street": "Sheikh Zayed Road 101",
      "city": "Dubai",
      "state_province": "Dubai"
     },
-    "beneficiary": {},
+    "beneficiary": {
+     "beneficiary_nationality": "ARE",
+     "beneficiary_dob": "1988-04-12",
+     "beneficiary_id_doc_type": "EMIRATES_ID",
+     "beneficiary_id_doc_number": "784198812345678",
+     "beneficiary_id_issued_country": "ARE",
+     "beneficiary_source_of_income": "SALARY"
+    },
     "ids": {
      "account_holder_name": "Ahmed Al Mansoori",
      "account_number": "AE070331234567890123456",
-     "swift_code": "EBILAEAD"
+     "swift_code": "EBILAEAD",
+     "account_type": "SAVINGS"
     }
+   },
+   "remitter": {
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "dob": "1990-01-15",
+    "nationality": "USA",
+    "residence_country": "USA",
+    "city": "New York",
+    "address_line": "350 Fifth Avenue",
+    "phone": "+12125550123",
+    "source_of_funds": "salary",
+    "id_type": "PASSPORT",
+    "id_number": "P1234567",
+    "state": "NY",
+    "id_issued_country": "USA"
    },
    "rails": [
     {
      "method": "BANK-TRANSFER",
+     "payment_method": "BANK_TRANSFER",
      "identifiers": [
       "account_holder_name",
       "account_number",
-      "swift_code"
+      "swift_code",
+      "account_type"
      ],
-     "beneficiary": []
-    }
-   ]
-  },
-  {
-   "fiat": "GBP",
-   "currency": "Pound Sterling",
-   "country": "United Kingdom",
-   "flag": "🇬🇧",
-   "alpha3": "GBR",
-   "guide": "/guides/country-guides/united-kingdom/overview",
-   "address": [
-    "street",
-    "city",
-    "postal_code"
-   ],
-   "payin": null,
-   "onboarding": "payout-only",
-   "sample": {
-    "name": "Oliver Smith",
-    "address": {
-     "street": "10 Downing Street",
-     "city": "London",
-     "postal_code": "SW1A 2AA"
-    },
-    "beneficiary": {},
-    "ids": {
-     "account_holder_name": "Oliver Smith",
-     "account_number": "31926819",
-     "sort_code": "200000"
-    }
-   },
-   "rails": [
-    {
-     "method": "BANK-TRANSFER",
-     "identifiers": [
-      "account_holder_name",
-      "account_number",
-      "sort_code"
+     "beneficiary": [
+      "beneficiary_nationality",
+      "beneficiary_dob",
+      "beneficiary_id_doc_type",
+      "beneficiary_id_doc_number",
+      "beneficiary_id_issued_country",
+      "beneficiary_source_of_income"
      ],
-     "beneficiary": []
+     "remittance": []
     }
    ]
   },
@@ -568,91 +590,7 @@
      "alpha_3_country_code": "USA"
     }
    },
-   "onboarding": "payout-only",
-   "sample": {
-    "name": "John Smith",
-    "address": {
-     "street": "350 Fifth Avenue",
-     "city": "New York",
-     "state_province": "NY",
-     "postal_code": "10118"
-    },
-    "beneficiary": {},
-    "ids": {
-     "account_holder_name": "John Smith",
-     "bank_name": "Chase",
-     "account_number": "123456789012",
-     "routing_number": "021000021"
-    }
-   },
-   "rails": [
-    {
-     "method": "ACH_PUSH",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number",
-      "routing_number"
-     ],
-     "beneficiary": [],
-     "address": []
-    },
-    {
-     "method": "RTP",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number",
-      "routing_number"
-     ],
-     "beneficiary": [],
-     "address": [
-      "street",
-      "city",
-      "state_province",
-      "postal_code"
-     ]
-    },
-    {
-     "method": "DOMESTIC_WIRE",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number",
-      "routing_number"
-     ],
-     "beneficiary": [],
-     "address": [
-      "street"
-     ]
-    },
-    {
-     "method": "FEDWIRE",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number",
-      "routing_number"
-     ],
-     "beneficiary": [],
-     "address": [
-      "street"
-     ]
-    },
-    {
-     "method": "WIRE",
-     "identifiers": [
-      "account_holder_name",
-      "bank_name",
-      "account_number",
-      "swift_code"
-     ],
-     "beneficiary": [],
-     "address": [
-      "street"
-     ]
-    }
-   ]
+   "rails": []
   },
   {
    "fiat": "VND",
@@ -667,23 +605,55 @@
     "state_province",
     "postal_code"
    ],
+   "remittance_address": [],
    "payin": null,
    "onboarding": "payout-only",
    "sample": {
     "name": "Nguyen Minh Anh",
+    "customer": {
+     "email": "nguyen.minh@example.com",
+     "phone": "912345678"
+    },
     "address": {
      "street": "12 Le Loi, Ben Nghe Ward",
      "city": "Ho Chi Minh City",
      "state_province": "Ho Chi Minh",
      "postal_code": "70000"
     },
-    "beneficiary": {},
+    "beneficiary": {
+     "beneficiary_gender": "FEMALE",
+     "beneficiary_occupation": "Designer",
+     "beneficiary_nationality": "VNM",
+     "beneficiary_dob": "1994-02-14",
+     "beneficiary_id_doc_type": "NATIONAL_ID",
+     "beneficiary_id_doc_number": "079194001234",
+     "beneficiary_id_issued_country": "VNM"
+    },
     "ids": {
      "account_holder_name": "NGUYEN MINH ANH",
      "account_number": "19031234567890",
      "bank_name": "Techcombank",
      "bank_code": "970407"
     }
+   },
+   "remitter": {
+    "first_name": "Tran",
+    "last_name": "Van Nam",
+    "dob": "1984-10-30",
+    "nationality": "VNM",
+    "residence_country": "USA",
+    "city": "San Jose",
+    "address_line": "200 Story Road",
+    "phone": "+14085550123",
+    "source_of_funds": "salary",
+    "id_type": "PASSPORT",
+    "id_number": "C12345678",
+    "email": "tran.vannam@example.com",
+    "gender": "male",
+    "occupation": "Engineer",
+    "state": "CA",
+    "postal_code": "95122",
+    "id_issued_country": "VNM"
    },
    "rails": [
     {
@@ -695,7 +665,16 @@
       "bank_name",
       "bank_code"
      ],
-     "beneficiary": []
+     "beneficiary": [
+      "beneficiary_gender",
+      "beneficiary_occupation",
+      "beneficiary_nationality",
+      "beneficiary_dob",
+      "beneficiary_id_doc_type",
+      "beneficiary_id_doc_number",
+      "beneficiary_id_issued_country"
+     ],
+     "remittance": []
     }
    ]
   }

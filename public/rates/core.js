@@ -3,26 +3,22 @@
 const Z = window.Z = {}
 
 // ── Markets Zapyd supports. Methods (rate, fee, speed, limit and history each) come from the rate card API; a placeholder until it loads
-const M = (key, name, cur, region, flag, lat, lon, extra = {}) => ({ key, name, cur, region, flag, lat, lon, mid: 0, dp: 2,
+const M = (key, name, cur, region, flag, lat, lon, extra = {}) => ({ key, name, cur, region, flag, lat, lon, mid: 0, dp: 2, payout: true,
   methods: [{ key: key + 0, name: '–', rate: '', fee: '–', speed: '–', limit: '–', mid: 0, dp: 2 }], ...extra })
 Z.MARKETS = [
   M('IN', 'India', 'INR', 'Asia Pacific', 'in', 22, 79),
   M('CN', 'China', 'CNY', 'Asia Pacific', 'cn', 33, 104),
-  M('HK', 'Hong Kong', 'HKD', 'Asia Pacific', 'hk', 22.3, 114.2),
-  M('SG', 'Singapore', 'SGD', 'Asia Pacific', 'sg', 1.35, 103.8),
+  M('BD', 'Bangladesh', 'BDT', 'Asia Pacific', 'bd', 23.7, 90.3),
   M('VN', 'Vietnam', 'VND', 'Asia Pacific', 'vn', 14, 108.3),
   M('PH', 'Philippines', 'PHP', 'Asia Pacific', 'ph', 12.5, 122),
-  M('EU', 'Euro area', 'EUR', 'Europe', 'eu', 51, 10.5, { note: '20 countries' }),
-  M('GB', 'United Kingdom', 'GBP', 'Europe', 'gb', 53, -1.5),
-  M('US', 'United States', 'USD', 'Americas', 'us', 39, -98, { payin: true }),
-  M('MX', 'Mexico', 'MXN', 'Americas', 'mx', 23.5, -102),
-  M('BR', 'Brazil', 'BRL', 'Americas', 'br', -10, -52),
-  M('CO', 'Colombia', 'COP', 'Americas', 'co', 4, -73),
+  M('ID', 'Indonesia', 'IDR', 'Asia Pacific', 'id', -2.5, 118),
+  // The USA is a payin market only: USD in, stablecoins out
+  M('US', 'United States', 'USD', 'Americas', 'us', 39, -98, { payin: true, payout: false }),
   M('AE', 'UAE', 'AED', 'Middle East', 'ae', 23.9, 54.5),
   M('NG', 'Nigeria', 'NGN', 'Africa', 'ng', 9, 8),
 ]
 Z.BY = Object.fromEntries(Z.MARKETS.map(m => [m.key, m]))
-Z.REGIONS = ['Asia Pacific', 'Europe', 'Americas', 'Middle East', 'Africa']
+Z.REGIONS = ['Asia Pacific', 'Americas', 'Middle East', 'Africa']
 // Payin: USD in the USA, credited in stablecoins at 1:1 less the volume tier. Tiers ([bps, volume]) and deposit fees come from the payin card API
 Z.TIERS = []
 Z.DEPOSITS = []
@@ -31,8 +27,7 @@ Z.ASSETS = { USDC: { key: 'USDC', mid: 1 }, USDT: { key: 'USDT', mid: 1 } }
 Z.FILTERS = [
   { v: 'all', label: 'All supported', has: () => true },
   { v: 'payin', label: 'Payin', has: m => m.payin },
-  { v: 'payout', label: 'Payout', has: () => true },
-  { v: 'both', label: 'Payin and payout', has: m => m.payin },
+  { v: 'payout', label: 'Payout', has: m => m.payout },
 ]
 Z.RANGES = { '24H': 864e5, '7D': 6048e5, '30D': 2592e6 }   // span in ms
 Z.REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -43,7 +38,8 @@ Z.sub = f => subs.push(f)
 Z.pub = (type, data = {}) => subs.forEach(f => f(type, data))
 const set = (type, patch) => { Object.assign(Z.state, patch); Z.pub(type) }
 Z.select = k => { if (!Z.BY[k]) return; history.replaceState(null, '', location.search + '#c=' + k); set('select', { sel: k, meth: 0 }) }
-Z.setFlow = f => f !== Z.state.flow && set('flow', { flow: f })
+// A payin-only market has no payout view: switching to payout picks India
+Z.setFlow = f => { if (f === Z.state.flow) return; if (f === 'payout' && !Z.cur().payout) Z.select('IN'); set('flow', { flow: f }) }
 Z.setMeth = i => set('meth', { meth: i })
 Z.setTier = b => set('tier', { tier: b })
 Z.setAsset = a => set('asset', { asset: a })
@@ -70,8 +66,6 @@ const load = async (range, cur = '') => {
     const cut = s => g.fiat === 'VND' ? s.replace(/(\.\d{2})\d+$/, '$1') : s
     const methods = g.methods.map((x, i) => {
       const key = m.key + i
-      // USDC to USD is pegged: always 1 less 10 bps, a flat line, whatever the API sends
-      if (g.fiat === 'USD') return { key, name: x.method, rate: x.rate, fee: x.fee, speed: x.speed, limit: x.limit, mid: 0.999, dp: 4 }
       const pts = x.points.map(([t, r]) => [t, cut(r)]), last = pts.at(-1)
       if (pts.length) hist[key + range] = { t: pts.map(p => p[0]), v: pts.map(p => +p[1]) }
       if (last) Z.state.updated = Math.max(Z.state.updated, last[0])
@@ -151,8 +145,8 @@ Z.boot = ({ theme = null } = {}) => {
   if (qs.has('embed')) document.documentElement.dataset.embed = ''
   const h = new URLSearchParams(location.hash.slice(1)).get('c')?.toUpperCase()
   if (h && Z.BY[h]) Z.state.sel = h
-  // Deep links: ?flow=payin&filter=payout&range=7D
-  if (qs.get('flow') === 'payin') Z.state.flow = 'payin'
+  // Deep links: ?flow=payin&filter=payout&range=7D. A payin-only market opens on payin
+  if (qs.get('flow') === 'payin' || !Z.cur().payout) Z.state.flow = 'payin'
   if (Z.FILTERS.some(f => f.v === qs.get('filter'))) Z.state.filter = qs.get('filter')
   if (Z.RANGES[qs.get('range')]) Z.state.range = qs.get('range')
   // Light by default; only the theme toggle (or the docs' theme message, or ?theme=) switches to dark
@@ -276,7 +270,7 @@ Z.map = (el, opts = {}) => {
     lines = null
   }
   readColors()
-  // Outer outline only: stroke at double width, then cut the inside away, so internal borders (the euro area) disappear
+  // Outer outline only: stroke at double width, then cut the inside away, so borders inside a market disappear
   const rim = (id, path, stroke, W, H, cell, dpr) => {
     id = `${id}:${W}`
     if (rims[id]) return rims[id]
@@ -349,10 +343,10 @@ Z.map = (el, opts = {}) => {
     <div class="tip__foot"><span class="tip__meta">${foot}</span><span class="tip__action">${action}${ARROW}</span></div>`
   const speed = s => `<span class="speed${s === 'Instant' ? '' : ' slow'}"><i></i>${s}</span>`
   const tipHtml = m => {
-    if ((Z.state.filter === 'payin' || Z.state.filter === 'both') && m.payin) return card({ flag: Z.flag(m), name: m.name, chip: Z.state.asset,
+    if ((Z.state.filter === 'payin' || !m.payout) && m.payin) return card({ flag: Z.flag(m), name: m.name, chip: Z.state.asset,
       pre: '1 USD =', value: Z.fmt(Z.payinRate(), 4), unit: Z.state.asset, foot: `Payin · 1:1 less ${Z.state.tier} bps`, action: 'History' })
     const meth = m.methods[0]
-    return card({ flag: Z.flag(m), name: m.name + (m.note ? ` <span class="tip__note">${m.note}</span>` : ''), chip: m.cur, pre: '1 USDC =',
+    return card({ flag: Z.flag(m), name: m.name, chip: m.cur, pre: '1 USDC =',
       value: Z.fmt(m.mid, m.dp), unit: m.cur, delta: `<span class="tip__delta">${Z.delta(Z.change(meth))}<span>24h</span></span>`,
       foot: `${speed(meth.speed)}<span>${m.payin ? 'Payin and payout' : 'Payout'}</span>`, action: 'History' })
   }
@@ -385,7 +379,7 @@ Z.map = (el, opts = {}) => {
     t0 = Z.REDUCED || Z.state.status === 'loading' ? null : performance.now()
     raf = 0; kick()
   }
-  // Hover follows the exact shape of lit markets; tiny ones (Singapore, Hong Kong, UAE) also answer to their nearest dot
+  // Hover follows the exact shape of lit markets; tiny ones (UAE) also answer to their nearest dot
   const grid = e => { const r = canvas.getBoundingClientRect(), cell = r.width / DOTS.w; return [(e.clientX - r.left) / cell, (e.clientY - r.top) / cell] }
   // Unsupported countries answer to their exact shape (bounds checked first, so a move costs a few path tests)
   const hitOther = e => {
@@ -407,7 +401,7 @@ Z.map = (el, opts = {}) => {
   canvas.addEventListener('pointerleave', () => { Z.setHover(null); setOther(null) })
   canvas.addEventListener('click', e => {
     const k = hit(e)
-    if (k) { Z.select(k); Z.setFlow(Z.state.filter === 'payin' || Z.state.filter === 'both' ? 'payin' : 'payout'); o.onPick?.(k); return }
+    if (k) { Z.select(k); Z.setFlow(Z.state.filter === 'payin' || !Z.BY[k].payout ? 'payin' : 'payout'); o.onPick?.(k); return }
     const c = hitOther(e)
     if (c) o.onRequest?.({ name: c.name, iso: c.iso })
   })

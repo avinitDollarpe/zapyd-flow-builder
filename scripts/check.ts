@@ -2,7 +2,7 @@
 // flow is well formed. Run with `npm run check`.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { COINS, DEFAULTS, MARKETS, build, choices, normalize, type Opts } from '../src/flow'
+import { COINS, DEFAULTS, DESTINATIONS, MARKETS, SOURCES, build, choices, market, normalize, type Opts, type Step } from '../src/flow'
 import { prompt } from '../src/prompt'
 
 const codes = [...COINS.map((c) => c.code), ...MARKETS.map((m) => m.fiat)]
@@ -56,7 +56,7 @@ assert.equal(normalize({ ...DEFAULTS, src: 'INR', dst: 'INR' }).purpose, 'payout
 assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'remittance', rail: 'UPI' }).rail, 'ACCOUNT_DETAILS')
 assert.equal(normalize({ ...DEFAULTS, src: 'USD', dst: 'INR', purpose: 'payout', rail: 'UPI' }).rail, 'ACCOUNT_DETAILS')
 assert.equal(normalize({ ...DEFAULTS, src: 'USDT', dst: 'INR', purpose: 'remittance' }).purpose, 'remittance')
-const pre = build(normalize({ ...DEFAULTS, src: 'USDT', dst: 'MXN', funding: 'prefunded' }))
+const pre = build(normalize({ ...DEFAULTS, src: 'USDT', dst: 'PHP', funding: 'prefunded' }))
 assert('steps' in pre && !pre.steps.some((s) => (s.body as Record<string, unknown>)?.transaction_hash))
 assert('steps' in pre && !pre.steps.some((s) => s.path?.includes('/prefunded/')))
 assert('unsupported' in build(normalize({ ...DEFAULTS, src: 'USDT', dst: 'USDC' })))
@@ -76,27 +76,80 @@ assert('steps' in rem && rem.steps.some((s) => JSON.stringify(s.body ?? {}).incl
 assert('steps' in rem && rem.steps.some((s) => s.path?.endsWith('/kyc/add-data') && JSON.stringify(s.body) === JSON.stringify({ customer_id: s.body && (s.body as Record<string, unknown>).customer_id })))
 for (const f of [po, rem]) assert('steps' in f && !f.steps.some((s) => (s.body as Record<string, unknown>)?.client_reference_id && s.id !== 'ben-create'))
 
-// Remittance payouts work in every market. Outside India the sender is the
-// customer who paid in, so the option needs a fiat source.
-const mx = build(normalize({ ...DEFAULTS, src: 'USD', dst: 'MXN', purpose: 'remittance' }))
-assert('steps' in mx && mx.steps.some((s) => s.path === '/pos/api/v1/remittance-payout/initiate'))
-assert('steps' in mx && mx.steps.some((s) => JSON.stringify(s.body ?? {}).includes('"capabilities":["REMITTANCE_PAYOUT"]')))
-assert('steps' in mx && !mx.steps.some((s) => s.id === 'remitter-create'))
-const payerId = 'steps' in mx ? mx.steps.find((s) => s.id === 'payer-create')?.returns : undefined
-assert('steps' in mx && mx.steps.filter((s) => (s.body as Record<string, unknown>)?.remitter_id).every((s) => (s.body as Record<string, unknown>).remitter_id === payerId))
-assert.equal(normalize({ ...DEFAULTS, src: 'USDC', dst: 'MXN', purpose: 'remittance' }).purpose, 'payout')
-// Vietnam: the remittance sender is a Create Remitter remitter, from any source,
-// and the account is VERIFIED in the bank/create response.
+// Zapyd pays out in exactly eight markets. The USA runs payins only.
+const PAYOUT_MARKETS = ['AED', 'BDT', 'CNY', 'IDR', 'INR', 'NGN', 'PHP', 'VND']
+assert.deepEqual(DESTINATIONS.filter((c) => market(c)).sort(), PAYOUT_MARKETS)
+assert(SOURCES.includes('USD') && !DESTINATIONS.includes('USD') && market('USD')?.payin && !market('USD')?.rails.length)
+assert('unsupported' in build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'USD' })))
+assert('unsupported' in build(normalize({ ...DEFAULTS, src: 'INR', dst: 'USD' })))
+// Every market takes a standard payout and a remittance payout, from any source.
+// The remittance sender is always a remitter from kyc/remitter/create.
+type Body = Record<string, unknown>
+const bodyOf = (f: { steps: Step[] }, id: string) => f.steps.find((s) => s.id === id)?.body as Body | undefined
+for (const dst of PAYOUT_MARKETS)
+  for (const src of ['USDC', 'USD', 'INR'].filter((x) => x !== dst)) {
+    const at = `${src}->${dst}`
+    const pay = build(normalize({ ...DEFAULTS, src, dst, purpose: 'payout' }))
+    assert('steps' in pay && pay.steps.some((s) => s.path === '/pos/api/v1/payout/initiate') && !pay.steps.some((s) => s.id === 'remitter-create'), at)
+    assert.equal(normalize({ ...DEFAULTS, src, dst, purpose: 'remittance' }).purpose, 'remittance', at)
+    const f = build(normalize({ ...DEFAULTS, src, dst, purpose: 'remittance' }))
+    assert('steps' in f && f.steps.some((s) => s.path === '/pos/api/v1/remittance-payout/initiate'), at)
+    assert(f.steps.some((s) => JSON.stringify(s.body ?? {}).includes('"capabilities":["REMITTANCE_PAYOUT"]')), at)
+    const remitter = f.steps.find((s) => s.id === 'remitter-create')
+    assert(remitter?.path === '/cms/api/v1/kyc/remitter/create', `${at}: no remitter`)
+    for (const id of ['payout-quote', 'payout-initiate']) assert.equal(bodyOf(f, id)?.remitter_id, remitter.returns, `${at}: ${id} remitter_id`)
+    // payment_method per fiat, the same for both payout APIs.
+    const method = { INR: 'IMPS', BDT: 'MOBILE_WALLET' }[dst] ?? 'BANK_TRANSFER'
+    assert.equal(bodyOf(f, 'payout-quote')?.payment_method, method, at)
+    assert.equal(bodyOf(pay, 'payout-quote')?.payment_method, method, at)
+  }
+// India: IMPS to a bank account, for both APIs. No UPI payout.
+assert.deepEqual(market('INR')!.rails.map((r) => r.method), ['ACCOUNT_DETAILS'])
+// The remitter carries the fields its market needs, in the formats it checks.
+const EXTRA: Record<string, string[]> = { AED: ['state', 'id_issued_country'] }
+for (const fiat of ['VND', 'IDR', 'PHP', 'BDT']) EXTRA[fiat] = ['email', 'gender', 'occupation', 'state', 'postal_code', 'id_issued_country']
+for (const fiat of PAYOUT_MARKETS) {
+  const r = market(fiat)!.remitter!
+  for (const k of ['first_name', 'last_name', 'nationality', 'city', 'source_of_funds', 'id_type', 'id_number', 'dob', 'phone', 'address_line', 'residence_country', ...(EXTRA[fiat] ?? [])])
+    assert(r[k], `${fiat} remitter: no ${k}`)
+  assert(r.residence_country !== 'IND' && /^\+\d{8,15}$/.test(r.phone), `${fiat} remitter`)
+  if (r.gender) assert(['male', 'female', 'other'].includes(r.gender), `${fiat} remitter gender`)
+}
+assert.match(market('VND')!.remitter!.postal_code, /^\d{5}$/)
+assert.match(market('PHP')!.remitter!.postal_code, /^\d{4}$/)
+assert.equal(market('IDR')!.remitter!.id_type, 'PASSPORT')
+// Samples pass the formats the docs list.
+const sample = (fiat: string) => market(fiat)!.sample!
+assert.match(sample('BDT').ids.account_number, /^01\d{9}$/)
+assert(['BKASH', 'NAGAD', 'ROCKET'].includes(sample('BDT').ids.wallet_provider))
+assert.match(sample('VND').ids.bank_code, /^\d{6}$/)
+assert.match(sample('IDR').ids.bank_code, /^\d{3}$/)
+for (const fiat of ['IDR', 'PHP']) assert.match(sample(fiat).ids.account_number, /^\d{10,16}$/)
+for (const fiat of ['IDR', 'PHP']) assert.match(sample(fiat).ids.account_holder_name, /^[A-Za-z .]+$/)
+for (const [fiat, n] of [['PHP', 4], ['VND', 5], ['IDR', 5], ['NGN', 6]] as const) assert.match(sample(fiat).address.postal_code, new RegExp(`^\\d{${n}}$`))
+for (const k of ['beneficiary_native_first_name', 'beneficiary_native_last_name']) assert.match(sample('CNY').beneficiary[k], /^\p{Script=Han}+$/u)
+// A remittance customer sends fewer fields: the remitter is the sender.
+const bdRem = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'BDT', purpose: 'remittance' }))
+assert('steps' in bdRem && JSON.stringify(bodyOf(bdRem, 'ben-address')?.beneficiary_identifiers) === '{"beneficiary_nationality":"BGD"}')
+assert(!('postal_code' in bodyOf(bdRem, 'ben-address')!))
+// China and a Philippines remittance customer send no address.
+for (const [dst, purpose] of [['CNY', 'payout'], ['CNY', 'remittance'], ['PHP', 'remittance']] as const) {
+  const f = build(normalize({ ...DEFAULTS, src: 'USDC', dst, purpose }))
+  assert('steps' in f && !('street' in bodyOf(f, 'ben-address')!), `${dst} ${purpose}: address`)
+}
+assert.deepEqual(market('CNY')!.rails[0].identifiers, ['account_holder_name', 'account_number'])
+const bdPay = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'BDT' }))
+assert('steps' in bdPay && (bodyOf(bdPay, 'ben-address')?.beneficiary_identifiers as Body)?.beneficiary_gender)
+// Vietnam: the account is VERIFIED in the bank/create response.
 const vn = build(normalize({ ...DEFAULTS, src: 'USDC', dst: 'VND', purpose: 'remittance' }))
-assert('steps' in vn && vn.steps.some((s) => s.id === 'remitter-create'))
-assert('steps' in vn && vn.steps.filter((s) => (s.body as Record<string, unknown>)?.remitter_id).every((s) => (s.body as Record<string, unknown>).remitter_id === vn.steps.find((x) => x.id === 'remitter-create')?.returns))
 assert('steps' in vn && !vn.steps.some((s) => s.id === 'bank-verified'))
 // Every bank account is verified: the BANK webhook follows bank/create.
-for (const f of [po, rem, mx, pre]) assert('steps' in f && f.steps.findIndex((s) => s.id === 'bank-verified') === f.steps.findIndex((s) => s.id === 'bank-create') + 1)
+for (const f of [po, rem, pre, bdPay]) assert('steps' in f && f.steps.findIndex((s) => s.id === 'bank-verified') === f.steps.findIndex((s) => s.id === 'bank-create') + 1)
 
 // The Rates page lights exactly the supported markets: its market list carries the same currencies as markets.json.
 const ratesSrc = readFileSync(new URL('../public/rates/core.js', import.meta.url), 'utf8')
 const ratesFiats = [...ratesSrc.matchAll(/^\s*M\('[A-Z]{2}', '[^']*', '([A-Z]{3})'/gm)].map((m) => m[1]).sort()
 assert.deepEqual(ratesFiats, MARKETS.map((m) => m.fiat).sort(), 'public/rates/core.js markets differ from src/data/markets.json')
+assert.match(ratesSrc, /M\('US', [^\n]*\{ payin: true, payout: false \}\)/, 'the Rates page shows the USA as payin only')
 
 console.log(`ok: ${flows} flows`)

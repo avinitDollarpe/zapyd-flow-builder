@@ -43,8 +43,7 @@ const PATHS: Record<string, string> = {
 }
 
 const ISO2: Record<string, string> = {
-  BRL: 'br', CNY: 'cn', COP: 'co', EUR: 'eu', HKD: 'hk', INR: 'in', MXN: 'mx',
-  NGN: 'ng', PHP: 'ph', SGD: 'sg', AED: 'ae', GBP: 'gb', USD: 'us', VND: 'vn',
+  AED: 'ae', BDT: 'bd', CNY: 'cn', IDR: 'id', INR: 'in', NGN: 'ng', PHP: 'ph', USD: 'us', VND: 'vn',
 }
 
 export function Icon({ name, size = 16 }: { name: string; size?: number }) {

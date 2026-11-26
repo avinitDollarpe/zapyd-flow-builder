@@ -7,7 +7,7 @@ Ladakh in India), which is the boundary India requires on maps shown there.
 
 Dots: one per grid cell (288 columns, 1.25 deg), sampled 4x4. A cell gets a dot only when its centre is on land; it
 belongs to the country under its centre when that country covers 3+ of 16 samples (else the largest share), and keeps its land coverage (1-9) so the map can size the dot.
-Every market country, every euro member, every market island over 1,000 km2 and every other
+Every market country, every market island over 1,000 km2 and every other
 country over 20,000 km2 gets at least one dot.
 
 Outlines: every market's polygons, simplified to 0.05 deg, for exact market borders and the hover shape.
@@ -17,10 +17,8 @@ import json, sys, math
 import numpy as np
 
 src = json.load(open(sys.argv[1]))
-EURO = "AUT BEL HRV CYP EST FIN FRA DEU GRC IRL ITA LVA LTU LUX MLT NLD PRT SVK SVN ESP".split()
 # Supported markets: keep in step with src/data/markets.json and the market list in public/rates/core.js
-COVER = {"USA": "US", "IND": "IN", "CHN": "CN", "HKG": "HK", "SGP": "SG", "VNM": "VN", "PHL": "PH", "GBR": "GB", "MEX": "MX", "BRA": "BR",
-         "COL": "CO", "ARE": "AE", "NGA": "NG", **{k: "EU" for k in EURO}}
+COVER = {"USA": "US", "IND": "IN", "CHN": "CN", "VNM": "VN", "PHL": "PH", "BGD": "BD", "IDN": "ID", "ARE": "AE", "NGA": "NG"}
 KEYS = sorted(set(COVER.values()))
 CH = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 code = {k: CH[i] for i, k in enumerate(KEYS)}
@@ -36,7 +34,7 @@ for f in src["features"]:
     if not g: continue
     props = f["properties"]; iso2 = props.get("ISO_A2_EH") or props.get("ISO_A2") or ""
     cid = len(a3s); a3s.append(props["ADM0_A3"]); names.append(props["NAME"]); iso2s.append(iso2 if len(iso2) == 2 else "")
-    # Caribbean Netherlands (Bonaire, Sint Eustatius, Saba) uses USD and is outside SEPA: not euro area
+    # Caribbean Netherlands (Bonaire, Sint Eustatius, Saba) is named on its own, apart from the Netherlands
     if a3s[cid] == "NLD": bes = len(a3s); a3s.append("BES"); names.append("Caribbean Netherlands"); iso2s.append("BQ")
     for poly in (g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]):
         if a3s[cid] == "NLD" and sum(p[0] for p in poly[0]) / len(poly[0]) < -30:
@@ -98,7 +96,7 @@ def force(cid, x, y, why):
     if v >= 0 and v != cid and a3s[v] in COVER and counts(v) <= 1: return False
     cell[y, x] = cid; cov[y, x] = max(cov[y, x], .35); forced.append((names[cid], why)); return True
 
-# every market and euro member, and every other country over 20,000 km2, gets a dot
+# every market, and every other country over 20,000 km2, gets a dot
 for cid in range(len(a3s)):
     if counts(cid): continue
     rings = [p[0] for c, p in polys if c == cid]
