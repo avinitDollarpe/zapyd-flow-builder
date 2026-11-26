@@ -569,9 +569,9 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
     $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span><span class="${v.modelClass}">${v.model}${v.flow === 'payout' ? '*' : ''}</span>`
     const facts = v.flow === 'payin'
       ? [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]]
-      : [['Speed', `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span>`], ['Fixed fee', v.fee === 'None' ? v.fee : `${v.fee}*`], ['Per transfer', v.meth.limit ?? 'No limit']]
-    // Payout shows the standard rate and fee (*); payin already shows its volume tiers
-    $('.rc__note').textContent = (v.flow === 'payout' ? '*Standard rate and fee. Volume-based pricing is available for higher monthly volumes. ' : '') +
+      : [['Speed', `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span>`], ['Fixed fee', v.fee], ['Per transfer', v.meth.limit ?? 'No limit']]
+    // Payout shows the standard rate (*); the fixed fee is always charged. Payin already shows its volume tiers
+    $('.rc__note').textContent = (v.flow === 'payout' ? '*Standard rate. Volume-based pricing is available for higher monthly volumes. ' : '') +
       'Rates are indicative and refresh every minute. Your rate is locked when you create a quotation.'
     $('.rc__facts').innerHTML = facts.map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
     if (list) $('.rc__list').innerHTML = v.flow === 'payin'
