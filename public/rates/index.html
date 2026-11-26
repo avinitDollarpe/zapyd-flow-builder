@@ -145,19 +145,18 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .cc__item.is-active { background: var(--gray-100); }
 .cc__empty { padding: 18px 10px; color: var(--gray-500); font-size: 13px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .cc:popover-open { animation: none; } }
-/* Gate: until the lead form is sent the page is a soft morphing gradient behind the form; then the map's dot sweep
-   plays, and the header and footer rise in after it */
+/* Gate backdrop (studio): a lit page, white at the top fading to a cool periwinkle floor, one brand-blue glow under the
+   form and a little grain. Static. On send it fades out, the real map sweeps in, then the header and footer */
 .morph { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 700ms var(--ease-out); }
 .is-gated .morph { opacity: 1; }
-.morph i { position: absolute; width: 62vmax; height: 62vmax; border-radius: 50%; filter: blur(90px); opacity: .42; animation: morph 24s var(--ease-std) infinite alternate; }
-.morph i:nth-child(1) { left: -18vmax; top: -24vmax; background: #7b9aff; }
-.morph i:nth-child(2) { right: -24vmax; top: 6vmax; background: #1b58ff; opacity: .22; animation-duration: 28s; animation-delay: -8s; }
-.morph i:nth-child(3) { left: 16vmax; bottom: -36vmax; background: #b9c8ff; opacity: .5; animation-duration: 32s; animation-delay: -14s; }
-@keyframes morph {
-  0% { translate: 0 0; scale: 1; border-radius: 42% 58% 60% 40% / 45% 40% 60% 55%; }
-  50% { translate: 9vmax 6vmax; scale: 1.15; border-radius: 60% 40% 35% 65% / 55% 60% 40% 45%; }
-  100% { translate: -7vmax 10vmax; scale: .94; border-radius: 45% 55% 50% 50% / 60% 45% 55% 40%; }
-}
+.morph::after { content: ""; position: absolute; inset: 0; opacity: .05; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.morph i { position: absolute; border-radius: 50%; }
+
+.morph { background: linear-gradient(180deg, #fbfcff 0%, #eef1ff 58%, #dfe5ff 100%); }
+.morph i { left: 50%; top: 62%; width: 64vmax; height: 30vmax; translate: -50% 0; background: radial-gradient(closest-side, rgb(27 88 255 / .32), rgb(106 92 255 / .12) 55%, transparent); filter: blur(30px); }
+:root[data-theme='dark'] .morph { background: linear-gradient(180deg, #06080f 0%, #0a0f22 60%, #111a3d 100%); }
+:root[data-theme='dark'] .morph i { background: radial-gradient(closest-side, rgb(43 91 255 / .45), rgb(91 60 255 / .18) 55%, transparent); }
+
 .is-gated .fit { opacity: 0; }
 #lead::backdrop { background: transparent; backdrop-filter: none; }
 .is-reveal .fit__stage { animation: reveal-fade 400ms var(--ease-out) both; }
@@ -166,7 +165,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .is-reveal .fit__foot { animation-delay: 1500ms; }
 @keyframes reveal-fade { from { opacity: 0; } }
 @keyframes reveal-rise { from { opacity: 0; translate: 0 8px; } }
-@media (prefers-reduced-motion: reduce) { .morph i, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
 .req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
 .req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
@@ -218,7 +217,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 </style>
 </head>
 <body>
-<div class="morph" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="morph" aria-hidden="true"><i></i></div>
 <div class="fit">
   <header class="nav">
     <div class="nav__title">
