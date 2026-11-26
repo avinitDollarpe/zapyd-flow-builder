@@ -145,18 +145,29 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .cc__item.is-active { background: var(--gray-100); }
 .cc__empty { padding: 18px 10px; color: var(--gray-500); font-size: 13px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .cc:popover-open { animation: none; } }
-/* Gate: until the lead form is sent, the backdrop is a preview of what is behind it. One direction, systemic and calm:
-   the dot world map as the hero on empty space, brand blue the only accent (Zapyd's markets), one soft bloom behind
-   the form. Motion is slow and weightless: a light sweep crosses the map as its intro does, markets pulse, and a
-   payment arc travels from the USA to one market at a time. On send it fades out, the real map sweeps in, then the
-   header and footer rise in after it */
-.morph { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; background: var(--bg); transition: opacity 700ms var(--ease-out); }
+/* Gate: until the lead form is sent the page is an aurora of slow, saturated gradients behind the form: a turning conic
+   swirl, four colour fields drifting on their own paths (brand blue, indigo, cyan, a little violet), and fine grain so the
+   colour reads as light, not as a flat fill. On send it fades out, the real map sweeps in, then the header and footer */
+.morph { --a: #1b58ff; --b: #6a5cff; --c: #22c7f0; --d: #b46cff; --base: #f4f6ff;
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; background: var(--base); transition: opacity 700ms var(--ease-out); }
+:root[data-theme='dark'] .morph { --base: #060814; --a: #2b5bff; --b: #5b3cff; --c: #0ea5d8; --d: #9b4dff; }
 .is-gated .morph { opacity: 1; }
-.morph canvas { position: absolute; inset: 0; width: 100%; height: 100%; mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 45%, transparent 92%); }
-.morph i { position: absolute; left: 50%; top: 50%; width: 54vmax; height: 40vmax; translate: -50% -50%; border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--blue) 22%, transparent), transparent); filter: blur(30px); animation: breathe 9s var(--ease-std) infinite alternate; }
-@keyframes breathe { to { scale: 1.12; opacity: .75; } }
-.morph::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in oklab, var(--bg) 55%, transparent), transparent 70%); }
+.morph::before { content: ""; position: absolute; inset: -25%; filter: blur(70px) saturate(1.2); opacity: .55;
+  background: conic-gradient(from 0deg at 50% 50%, var(--a), var(--c), var(--b), var(--d), var(--a)); animation: swirl 40s linear infinite; }
+:root[data-theme='dark'] .morph::before { opacity: .45; }
+@keyframes swirl { to { rotate: 1turn; } }
+.morph i { position: absolute; width: 58vmax; height: 58vmax; border-radius: 50%; filter: blur(60px); mix-blend-mode: normal; opacity: .8;
+  animation: drift 22s var(--ease-std) infinite alternate; }
+.morph i:nth-child(1) { left: -14vmax; top: -18vmax; background: radial-gradient(closest-side, var(--a), transparent); }
+.morph i:nth-child(2) { right: -16vmax; top: -10vmax; background: radial-gradient(closest-side, var(--d), transparent); opacity: .55; animation-duration: 27s; animation-delay: -9s; }
+.morph i:nth-child(3) { left: 18vmax; bottom: -26vmax; background: radial-gradient(closest-side, var(--c), transparent); opacity: .6; animation-duration: 31s; animation-delay: -4s; }
+.morph i:nth-child(4) { right: 6vmax; bottom: -20vmax; background: radial-gradient(closest-side, var(--b), transparent); opacity: .7; animation-duration: 25s; animation-delay: -15s; }
+@keyframes drift { 33% { translate: 8vmax 5vmax; scale: 1.15; } 66% { translate: -6vmax 9vmax; scale: .9; } 100% { translate: 5vmax -6vmax; scale: 1.08; } }
+/* A soft light wash where the form sits, and grain over everything */
+.morph b { position: absolute; inset: 0; background: radial-gradient(ellipse 46% 42% at 50% 50%, color-mix(in oklab, var(--base) 55%, transparent), transparent 75%); }
+.morph::after { content: ""; position: absolute; inset: 0; opacity: .14; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.is-gated #lead { box-shadow: 0 0 0 1px oklch(1 0 0 / .5), 0 24px 60px -18px oklch(0.25 0.15 270 / .45); }
+:root[data-theme='dark'] .is-gated #lead { box-shadow: 0 0 0 1px oklch(1 0 0 / .1), 0 24px 70px -18px oklch(0 0 0 / .8); }
 .is-gated .fit { opacity: 0; }
 #lead::backdrop { background: transparent; backdrop-filter: none; }
 .is-reveal .fit__stage { animation: reveal-fade 400ms var(--ease-out) both; }
@@ -165,7 +176,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .is-reveal .fit__foot { animation-delay: 1500ms; }
 @keyframes reveal-fade { from { opacity: 0; } }
 @keyframes reveal-rise { from { opacity: 0; translate: 0 8px; } }
-@media (prefers-reduced-motion: reduce) { .morph i, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .morph i, .morph::before, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
 .req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
 .req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
@@ -217,7 +228,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 </style>
 </head>
 <body>
-<div class="morph" aria-hidden="true"><canvas id="morphMap"></canvas><i></i></div>
+<div class="morph" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
 <div class="fit">
   <header class="nav">
     <div class="nav__title">
@@ -612,59 +623,7 @@ const reveal = () => {
   setTimeout(() => document.body.classList.remove('is-reveal'), 2100)
 }
 $('open').addEventListener('click', open)
-// ── Gate backdrop (see .morph): the dot map on a canvas, drawn only while the lead form is up ──
-const backdrop = () => {
-  const cv = $('morphMap'), ctx = cv.getContext('2d'), dots = [], ids = Object.fromEntries([...DOTS.keys].map((c, i) => [c, DOTS.ids[i]]))
-  DOTS.rows.forEach((row, y) => [...row].forEach((c, x) => { if (c !== ' ') dots.push({ x, y, on: !!ids[c] }) }))
-  const markets = Z.MARKETS.filter(m => m.payout).map(Z.toXY), from = Z.toXY(Z.BY.US)
-  let W = 0, H = 0, s = 1, ox = 0, oy = 0, col = {}, raf = 0, last = 0, stopAt = 0
-  const t0 = performance.now()
-  const theme = () => { const cs = getComputedStyle(document.documentElement); col = { dot: cs.getPropertyValue('--gray-300').trim(), blue: cs.getPropertyValue('--blue').trim() } }
-  const size = () => {
-    const d = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight
-    cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0)
-    s = Math.min(W * 0.96 / DOTS.w, H * 0.86 / DOTS.h); ox = (W - DOTS.w * s) / 2; oy = (H - DOTS.h * s) / 2
-  }
-  const px = p => [ox + (p.x + 0.5) * s, oy + (p.y + 0.5) * s]
-  const draw = t => {
-    ctx.clearRect(0, 0, W, H)
-    const band = ((t % 9) / 9) * (DOTS.w + 80) - 40, r = Math.max(0.8, s * 0.3)
-    for (const d of dots) {   // every land dot; the light band lifts the dots it crosses
-      const lift = Math.max(0, 1 - Math.abs(d.x - band) / 22)
-      ctx.globalAlpha = d.on ? 0.75 + 0.25 * lift : 0.55 + 0.35 * lift
-      ctx.fillStyle = d.on ? col.blue : col.dot
-      const x = ox + d.x * s + s / 2 - r, y = oy + d.y * s + s / 2 - r
-      ctx.fillRect(x, y, r * 2, r * 2)
-      if (lift > 0 && !d.on) { ctx.globalAlpha = lift * 0.35; ctx.fillStyle = col.blue; ctx.fillRect(x, y, r * 2, r * 2) }
-    }
-    ctx.strokeStyle = col.blue; ctx.fillStyle = col.blue; ctx.lineWidth = 1.25
-    markets.forEach((m, i) => {   // each market pulses a ring, staggered
-      const k = ((t + i * 0.55) % 3.6) / 3.6, [x, y] = px(m)
-      ctx.globalAlpha = (1 - k) * 0.45; ctx.beginPath(); ctx.arc(x, y, 3 + k * s * 7, 0, Math.PI * 2); ctx.stroke()
-    })
-    // A payment arc: from the USA to the next market every 3 s, drawn out then fading
-    const n = Math.floor(t / 3), k = (t % 3) / 3, to = markets[(n * 3) % markets.length]
-    const [x0, y0] = px(from), [x1, y1] = px(to), cx = (x0 + x1) / 2, cy = Math.min(y0, y1) - Math.abs(x1 - x0) * 0.5   // high enough to arc over the form
-    const at = u => [(1 - u) ** 2 * x0 + 2 * (1 - u) * u * cx + u * u * x1, (1 - u) ** 2 * y0 + 2 * (1 - u) * u * cy + u * u * y1]
-    const head = Math.min(1, k / 0.7), fade = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3
-    ctx.globalAlpha = 0.55 * fade; ctx.lineWidth = 1.5; ctx.beginPath()
-    for (let u = 0; u <= head + 1e-6; u += 0.02) { const [x, y] = at(Math.min(u, head)); u ? ctx.lineTo(x, y) : ctx.moveTo(x, y) }
-    ctx.stroke()
-    const [hx, hy] = at(head); ctx.globalAlpha = fade; ctx.beginPath(); ctx.arc(hx, hy, 3, 0, Math.PI * 2); ctx.fill()
-    ctx.globalAlpha = 1
-  }
-  const loop = now => {
-    raf = requestAnimationFrame(loop)
-    if (!document.body.classList.contains('is-gated')) { stopAt ||= now; if (now - stopAt > 900) { cancelAnimationFrame(raf); ctx.clearRect(0, 0, W, H) } }
-    if (now - last < 33) return   // about 30 fps is plenty for slow motion
-    last = now; draw((now - t0) / 1000)
-  }
-  theme(); size()
-  new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-  addEventListener('resize', () => { size(); if (Z.REDUCED) draw(4) })
-  if (Z.REDUCED) draw(4); else raf = requestAnimationFrame(loop)
-}
-if (!Z.unlocked) { backdrop(); open() }
+if (!Z.unlocked) open()
 $('close').addEventListener('click', close)
 addEventListener('keydown', e => { if (e.key === 'Escape' && !req.open && sheet.classList.contains('is-open')) close() })
 addEventListener('resize', () => sheet.classList.contains('is-open') && lift())
