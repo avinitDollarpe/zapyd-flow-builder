@@ -145,19 +145,22 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .cc__item.is-active { background: var(--gray-100); }
 .cc__empty { padding: 18px 10px; color: var(--gray-500); font-size: 13px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .cc:popover-open { animation: none; } }
-/* Gate: until the lead form is sent the page is a soft morphing gradient behind the form; then the map's dot sweep
-   plays, and the header and footer rise in after it */
-.morph { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 700ms var(--ease-out); }
+/* Gate: until the lead form is sent the page is the backdrop below; then the map's dot sweep plays, and the header and
+   footer rise in after it. Backdrop: two slow brand-blue glows, the map's own dot grid fading out from the centre, and a
+   blue glint drifting across the dots (a nod to the map's sweep) */
+.morph { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; background: var(--bg); transition: opacity 700ms var(--ease-out); }
 .is-gated .morph { opacity: 1; }
-.morph i { position: absolute; width: 62vmax; height: 62vmax; border-radius: 50%; filter: blur(90px); opacity: .42; animation: morph 24s var(--ease-std) infinite alternate; }
-.morph i:nth-child(1) { left: -18vmax; top: -24vmax; background: #7b9aff; }
-.morph i:nth-child(2) { right: -24vmax; top: 6vmax; background: #1b58ff; opacity: .22; animation-duration: 28s; animation-delay: -8s; }
-.morph i:nth-child(3) { left: 16vmax; bottom: -36vmax; background: #b9c8ff; opacity: .5; animation-duration: 32s; animation-delay: -14s; }
-@keyframes morph {
-  0% { translate: 0 0; scale: 1; border-radius: 42% 58% 60% 40% / 45% 40% 60% 55%; }
-  50% { translate: 9vmax 6vmax; scale: 1.15; border-radius: 60% 40% 35% 65% / 55% 60% 40% 45%; }
-  100% { translate: -7vmax 10vmax; scale: .94; border-radius: 45% 55% 50% 50% / 60% 45% 55% 40%; }
-}
+.morph i { position: absolute; border-radius: 50%; filter: blur(80px); animation: morph 26s var(--ease-std) infinite alternate; }
+.morph i:nth-child(1) { width: 48vmax; height: 40vmax; left: 8vw; top: -14vmax; background: radial-gradient(closest-side, rgb(27 88 255 / .34), rgb(27 88 255 / 0)); }
+.morph i:nth-child(2) { width: 52vmax; height: 44vmax; right: 2vw; bottom: -18vmax; background: radial-gradient(closest-side, rgb(110 92 255 / .26), rgb(110 92 255 / 0)); animation-duration: 32s; animation-delay: -11s; }
+@keyframes morph { 50% { translate: 6vmax 4vmax; scale: 1.12; } 100% { translate: -4vmax 7vmax; scale: .95; } }
+.morph b { position: absolute; inset: -16px; background-image: radial-gradient(circle, var(--dot, #c9d0dc) 1.15px, transparent 1.7px); background-size: 16px 16px;
+  mask-image: radial-gradient(ellipse 62% 58% at 50% 50%, #000 20%, transparent 78%); }
+.morph b + b { --dot: var(--blue); mask-image: radial-gradient(circle closest-side, #000, transparent); mask-size: 46vmax 46vmax; mask-repeat: no-repeat; mask-position: 12% 18%; opacity: .55; animation: glint 14s var(--ease-std) infinite alternate; }
+@keyframes glint { 33% { mask-position: 88% 30%; } 66% { mask-position: 30% 86%; } 100% { mask-position: 78% 78%; } }
+.morph::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 90% 80% at 50% 45%, transparent 55%, color-mix(in oklab, var(--bg) 70%, transparent)); }
+:root[data-theme='dark'] .morph { --dot: #2a3142; }
+:root[data-theme='dark'] .morph i { opacity: .7; }
 .is-gated .fit { opacity: 0; }
 #lead::backdrop { background: transparent; backdrop-filter: none; }
 .is-reveal .fit__stage { animation: reveal-fade 400ms var(--ease-out) both; }
@@ -166,7 +169,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .is-reveal .fit__foot { animation-delay: 1500ms; }
 @keyframes reveal-fade { from { opacity: 0; } }
 @keyframes reveal-rise { from { opacity: 0; translate: 0 8px; } }
-@media (prefers-reduced-motion: reduce) { .morph i, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .morph i, .morph b, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
 .req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
 .req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
@@ -218,7 +221,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 </style>
 </head>
 <body>
-<div class="morph" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="morph" aria-hidden="true"><i></i><i></i><b></b><b></b></div>
 <div class="fit">
   <header class="nav">
     <div class="nav__title">
