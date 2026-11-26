@@ -263,10 +263,9 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
       <span class="req__badge" id="leadFlag"></span>
       <div>
         <span class="req__kicker">Rate card</span>
-        <h2 id="leadTitle">See Zapyd's rates</h2>
-        <p id="leadLede">Tell us who you are to see today's rate, fees and price history for every country.</p>
+        <h2 id="leadTitle">Explore Zapyd's rates</h2>
+        <p id="leadLede">Tell us who you are to see the countries Zapyd supports, with today's rate, fees and price history for each.</p>
       </div>
-      <button type="button" class="close" id="leadClose" aria-label="Close"></button>
     </div>
     <div class="req__body">
       <div class="req__row">
@@ -282,7 +281,6 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
     <div class="req__foot">
       <p class="req__note" id="leadNote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Used only to contact you about Zapyd</p>
       <p class="req__error" id="leadError" role="alert" hidden></p>
-      <button type="button" class="btn" id="leadCancel">Cancel</button>
       <button class="btn btn--primary req__submit" id="leadSubmit">See rates<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
     </div>
   </form>
@@ -299,7 +297,7 @@ const REQUEST_URL = 'https://script.google.com/macros/s/AKfycbxJJ1aZRZ_dYcX0BOOM
 Z.boot()
 const $ = id => document.getElementById(id)
 const CLOSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
-$('close').innerHTML = CLOSE; $('reqClose').innerHTML = CLOSE; $('leadClose').innerHTML = CLOSE
+$('close').innerHTML = CLOSE; $('reqClose').innerHTML = CLOSE
 Z.livePill($('live'))
 Z.themeToggle($('themeToggle'))
 const sheet = $('sheet'), mapEl = $('map'), req = $('req'), form = $('reqForm')
@@ -401,7 +399,7 @@ form.addEventListener('submit', async e => {
   } finally { btn.removeAttribute('aria-busy') }
 })
 
-// ── Rate card access: name, company, email and phone first, once per browser (stored in the same sheet) ──
+// ── Page access: name, company, email and phone before the map and rates, once per browser (stored in the same sheet) ──
 // ponytail: a browser flag, not access control; the rates API stays public
 const lead = $('lead'), leadForm = $('leadForm')
 const leadError = msg => { $('leadError').textContent = msg; $('leadError').hidden = !msg; $('leadNote').hidden = !!msg }
@@ -409,12 +407,10 @@ leadForm.addEventListener('input', e => e.target.removeAttribute('aria-invalid')
 const open = () => {
   if (Z.unlocked) return showSheet()
   leadError(''); leadForm.querySelectorAll('[aria-invalid]').forEach(f => f.removeAttribute('aria-invalid'))
-  $('leadFlag').innerHTML = Z.flag(Z.cur())
+  $('leadFlag').innerHTML = GLOBE
   lead.showModal(); leadForm.elements.name.focus()
 }
-lead.addEventListener('cancel', e => { e.preventDefault(); closeDialog(lead) })
-lead.addEventListener('click', e => { if (e.target === lead) closeDialog(lead) })
-$('leadClose').addEventListener('click', () => closeDialog(lead)); $('leadCancel').addEventListener('click', () => closeDialog(lead))
+lead.addEventListener('cancel', e => e.preventDefault())   // the form comes first: no Esc, no backdrop close
 leadForm.addEventListener('submit', async e => {
   e.preventDefault()
   const f = leadForm.elements, bad = []
@@ -428,7 +424,7 @@ leadForm.addEventListener('submit', async e => {
   try {
     await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: f.phone.value.trim(), country: Z.cur().name, fax: f.fax.value })
     try { localStorage.setItem(LEAD_KEY, '1') } catch {}
-    Z.unlocked = true; lead.close(); showSheet()
+    Z.unlocked = true; closeDialog(lead)
   } catch (err) {
     leadError("Couldn't send. Check your connection and try again.")
   } finally { btn.removeAttribute('aria-busy') }
@@ -436,6 +432,7 @@ leadForm.addEventListener('submit', async e => {
 
 Z.map(mapEl, { onPick: open, onRequest: openRequest })
 $('open').addEventListener('click', open)
+if (!Z.unlocked) open()
 $('close').addEventListener('click', close)
 addEventListener('keydown', e => { if (e.key === 'Escape' && !req.open && sheet.classList.contains('is-open')) close() })
 addEventListener('resize', () => sheet.classList.contains('is-open') && lift())
