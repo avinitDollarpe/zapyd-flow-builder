@@ -1,5 +1,6 @@
 /**
- * Request-access endpoint for the rates map: appends each request to a Google Sheet.
+ * Endpoint for the rates page: appends each request-access form to the "Requests" tab and each rate card
+ * form (kind "rates": name, company, email, phone) to the "Rate card" tab of the same Google Sheet.
  *
  * Setup (about 5 minutes):
  *   1. Create a Google Sheet. Open Extensions > Apps Script, delete the sample code and paste this file.
@@ -12,6 +13,8 @@
  */
 const SHEET_NAME = 'Requests'
 const HEADERS = ['Received', 'Country', 'Flow', 'Monthly volume', 'Website', 'Email', 'Notes']
+const RATES_SHEET = 'Rate card'
+const RATES_HEADERS = ['Received', 'Name', 'Company', 'Email', 'Phone', 'Country']
 const FLOWS = ['payout', 'payin', 'both']
 const VOLUMES = ['Under $100K', '$100K to $1M', '$1M to $10M', 'Over $10M']
 
@@ -24,23 +27,38 @@ function doPost(e) {
 
   const email = clean(data.email, 200)
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ ok: false, error: 'invalid_email' })
+
+  if (data.kind === 'rates') {
+    const phone = clean(data.phone, 30)
+    if (!clean(data.name, 120) || !clean(data.company, 120)) return reply({ ok: false, error: 'missing_fields' })
+    if (!/^\+?[\d\s().-]{7,25}$/.test(phone) || phone.replace(/\D/g, '').length < 7) return reply({ ok: false, error: 'invalid_phone' })
+    append(RATES_SHEET, RATES_HEADERS, [
+      new Date(), cell(data.name, 120), cell(data.company, 120), cell(email, 200), cell(phone, 30), cell(data.country, 80),
+    ])
+    return reply({ ok: true })
+  }
+
   const website = siteUrl(data.website)
   if (!clean(data.country, 80) || !website) return reply({ ok: false, error: 'missing_fields' })
   if (FLOWS.indexOf(data.flow) < 0 || VOLUMES.indexOf(data.volume) < 0) return reply({ ok: false, error: 'invalid_choice' })
 
+  append(SHEET_NAME, HEADERS, [
+    new Date(), cell(data.country, 80), data.flow, data.volume, website, cell(email, 200), cell(data.notes, 1000),
+  ])
+  return reply({ ok: true })
+}
+
+function append(name, headers, row) {
   const lock = LockService.getScriptLock()
   lock.waitLock(10000)                       // serialise appends so concurrent requests can't interleave rows
   try {
     const book = SpreadsheetApp.getActiveSpreadsheet()
-    const sheet = book.getSheetByName(SHEET_NAME) || book.insertSheet(SHEET_NAME)
-    if (sheet.getLastRow() === 0) { sheet.appendRow(HEADERS); sheet.setFrozenRows(1) }
-    sheet.appendRow([
-      new Date(), cell(data.country, 80), data.flow, data.volume, website, cell(email, 200), cell(data.notes, 1000),
-    ])
+    const sheet = book.getSheetByName(name) || book.insertSheet(name)
+    if (sheet.getLastRow() === 0) { sheet.appendRow(headers); sheet.setFrozenRows(1) }
+    sheet.appendRow(row)
   } finally {
     lock.releaseLock()
   }
-  return reply({ ok: true })
 }
 
 function siteUrl(v) {

@@ -257,17 +257,49 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
     <button type="button" class="btn btn--primary" id="reqOk">Done</button>
   </div>
 </dialog>
+<dialog class="req" id="lead" aria-labelledby="leadTitle" aria-describedby="leadLede" tabindex="-1">
+  <form class="req__form" id="leadForm" novalidate>
+    <div class="req__head">
+      <span class="req__badge" id="leadFlag"></span>
+      <div>
+        <span class="req__kicker">Rate card</span>
+        <h2 id="leadTitle">See Zapyd's rates</h2>
+        <p id="leadLede">Tell us who you are to see today's rate, fees and price history for every country.</p>
+      </div>
+      <button type="button" class="close" id="leadClose" aria-label="Close"></button>
+    </div>
+    <div class="req__body">
+      <div class="req__row">
+        <label class="req__field"><span>Full name</span><input class="input" name="name" autocomplete="name" maxlength="120" placeholder="Asha Rao" required></label>
+        <label class="req__field"><span>Company</span><input class="input" name="company" autocomplete="organization" maxlength="120" placeholder="Acme" required></label>
+      </div>
+      <div class="req__row">
+        <label class="req__field"><span>Work email</span><input class="input" name="email" type="email" autocomplete="email" maxlength="200" placeholder="asha@acme.com" required></label>
+        <label class="req__field"><span>Phone</span><input class="input" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="+1 212 555 0123" required></label>
+      </div>
+      <input class="req__hp" name="fax" tabindex="-1" autocomplete="off" aria-hidden="true">
+    </div>
+    <div class="req__foot">
+      <p class="req__note" id="leadNote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Used only to contact you about Zapyd</p>
+      <p class="req__error" id="leadError" role="alert" hidden></p>
+      <button type="button" class="btn" id="leadCancel">Cancel</button>
+      <button class="btn btn--primary req__submit" id="leadSubmit">See rates<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+    </div>
+  </form>
+</dialog>
 <script src="dots.js"></script>
 <script src="core.js"></script>
 <script>
 // Google Apps Script web app that appends each request to a Google Sheet (see scripts/request-access.gs).
 // Leave empty while there is no sheet: requests are then simulated and logged to the console.
+const LEAD_KEY = 'zapyd-rates-lead'
+try { Z.unlocked = !!localStorage.getItem(LEAD_KEY) } catch { Z.unlocked = false }
 const REQUEST_URL = 'https://script.google.com/macros/s/AKfycbxJJ1aZRZ_dYcX0BOOMKBD1cPL0wpxeyZQGlgmeE1uqpSUi5w6k7fCiQrsrHWDQpWCC/exec'
 
 Z.boot()
 const $ = id => document.getElementById(id)
 const CLOSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
-$('close').innerHTML = CLOSE; $('reqClose').innerHTML = CLOSE
+$('close').innerHTML = CLOSE; $('reqClose').innerHTML = CLOSE; $('leadClose').innerHTML = CLOSE
 Z.livePill($('live'))
 Z.themeToggle($('themeToggle'))
 const sheet = $('sheet'), mapEl = $('map'), req = $('req'), form = $('reqForm')
@@ -281,7 +313,7 @@ const lift = () => {
   shift = Math.max(0, Math.min(y + 32 - sheetTop, r.height * .6))
   mapEl.style.translate = `0 ${-shift}px`
 }
-const open = () => {
+const showSheet = () => {
   if (!sheet.classList.contains('is-open')) opener = document.activeElement
   chart ??= Z.chart($('chart'), { height: 228, label: false, stats: $('stats') })   // first open: the chart intro plays in view
   sheet.classList.add('is-open'); document.body.classList.add('is-sheet'); lift()
@@ -306,12 +338,13 @@ const openRequest = c => {
   form.querySelectorAll('[aria-invalid]').forEach(f => f.removeAttribute('aria-invalid'))
   req.showModal(); req.focus()                 // focus the dialog itself; Tab reaches the first choice
 }
-const closeRequest = () => {
-  if (!req.open || req.classList.contains('is-closing')) return
-  if (Z.REDUCED) return req.close()
-  req.classList.add('is-closing')
-  setTimeout(() => { req.classList.remove('is-closing'); req.close() }, 150)
+const closeDialog = d => {
+  if (!d.open || d.classList.contains('is-closing')) return
+  if (Z.REDUCED) return d.close()
+  d.classList.add('is-closing')
+  setTimeout(() => { d.classList.remove('is-closing'); d.close() }, 150)
 }
+const closeRequest = () => closeDialog(req)
 req.addEventListener('cancel', e => { e.preventDefault(); closeRequest() })                 // Esc
 req.addEventListener('click', e => { if (e.target === req) closeRequest() })                 // backdrop
 $('reqClose').addEventListener('click', closeRequest); $('reqCancel').addEventListener('click', closeRequest); $('reqOk').addEventListener('click', closeRequest)
@@ -365,6 +398,39 @@ form.addEventListener('submit', async e => {
     form.hidden = true; $('reqDone').hidden = false; $('reqOk').focus()
   } catch (err) {
     showError("Couldn't send. Check your connection and try again.")
+  } finally { btn.removeAttribute('aria-busy') }
+})
+
+// ── Rate card access: name, company, email and phone first, once per browser (stored in the same sheet) ──
+// ponytail: a browser flag, not access control; the rates API stays public
+const lead = $('lead'), leadForm = $('leadForm')
+const leadError = msg => { $('leadError').textContent = msg; $('leadError').hidden = !msg; $('leadNote').hidden = !!msg }
+leadForm.addEventListener('input', e => e.target.removeAttribute('aria-invalid'))
+const open = () => {
+  if (Z.unlocked) return showSheet()
+  leadError(''); leadForm.querySelectorAll('[aria-invalid]').forEach(f => f.removeAttribute('aria-invalid'))
+  $('leadFlag').innerHTML = Z.flag(Z.cur())
+  lead.showModal(); leadForm.elements.name.focus()
+}
+lead.addEventListener('cancel', e => { e.preventDefault(); closeDialog(lead) })
+lead.addEventListener('click', e => { if (e.target === lead) closeDialog(lead) })
+$('leadClose').addEventListener('click', () => closeDialog(lead)); $('leadCancel').addEventListener('click', () => closeDialog(lead))
+leadForm.addEventListener('submit', async e => {
+  e.preventDefault()
+  const f = leadForm.elements, bad = []
+  const phoneOk = /^\+?[\d\s().-]{7,25}$/.test(f.phone.value.trim()) && f.phone.value.replace(/\D/g, '').length >= 7
+  for (const [name, label, ok] of [['name', 'your name', !!f.name.value.trim()], ['company', 'your company', !!f.company.value.trim()],
+    ['email', 'a work email', !!f.email.value.trim() && f.email.checkValidity()], ['phone', 'a phone number', phoneOk]]) {
+    f[name].setAttribute('aria-invalid', !ok); if (!ok) bad.push(label)
+  }
+  if (bad.length) { leadError(`Add ${bad.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`); leadForm.querySelector('[aria-invalid="true"]').focus(); return }
+  const btn = $('leadSubmit'); btn.setAttribute('aria-busy', 'true'); leadError('')
+  try {
+    await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: f.phone.value.trim(), country: Z.cur().name, fax: f.fax.value })
+    try { localStorage.setItem(LEAD_KEY, '1') } catch {}
+    Z.unlocked = true; lead.close(); showSheet()
+  } catch (err) {
+    leadError("Couldn't send. Check your connection and try again.")
   } finally { btn.removeAttribute('aria-busy') }
 })
 

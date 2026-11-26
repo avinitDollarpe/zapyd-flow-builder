@@ -344,10 +344,10 @@ Z.map = (el, opts = {}) => {
   const speed = s => `<span class="speed${s === 'Instant' ? '' : ' slow'}"><i></i>${s}</span>`
   const tipHtml = m => {
     if ((Z.state.filter === 'payin' || !m.payout) && m.payin) return card({ flag: Z.flag(m), name: m.name, chip: Z.state.asset,
-      pre: '1 USD =', value: Z.fmt(Z.payinRate(), 4), unit: Z.state.asset, foot: `Payin · 1:1 less ${Z.state.tier} bps`, action: 'History' })
+      pre: '1 USD =', value: Z.unlocked ? Z.fmt(Z.payinRate(), 4) : '•••', unit: Z.state.asset, foot: `Payin · 1:1 less ${Z.state.tier} bps`, action: 'History' })
     const meth = m.methods[0]
     return card({ flag: Z.flag(m), name: m.name, chip: m.cur, pre: '1 USDC =',
-      value: Z.fmt(m.mid, m.dp), unit: m.cur, delta: `<span class="tip__delta">${Z.delta(Z.change(meth))}<span>24h</span></span>`,
+      value: Z.unlocked ? Z.fmt(m.mid, m.dp) : '•••', unit: m.cur, delta: `<span class="tip__delta">${Z.delta(Z.change(meth))}<span>24h</span></span>`,
       foot: `${speed(meth.speed)}<span>${m.payin ? 'Payin and payout' : 'Payout'}</span>`, action: 'History' })
   }
   const otherHtml = c => card({ flag: c.iso ? `<img class="flag" src="${Z.flagUrl({ flag: c.iso })}" alt="">` : '', name: c.name,
