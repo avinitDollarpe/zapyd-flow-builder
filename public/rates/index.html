@@ -145,29 +145,21 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .cc__item.is-active { background: var(--gray-100); }
 .cc__empty { padding: 18px 10px; color: var(--gray-500); font-size: 13px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .cc:popover-open { animation: none; } }
-/* Gate: until the lead form is sent the page is an aurora of slow, saturated gradients behind the form: a turning conic
-   swirl, four colour fields drifting on their own paths (brand blue, indigo, cyan, a little violet), and fine grain so the
-   colour reads as light, not as a flat fill. On send it fades out, the real map sweeps in, then the header and footer */
-.morph { --a: #1b58ff; --b: #6a5cff; --c: #22c7f0; --d: #b46cff; --base: #f4f6ff;
-  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; background: var(--base); transition: opacity 700ms var(--ease-out); }
-:root[data-theme='dark'] .morph { --base: #060814; --a: #2b5bff; --b: #5b3cff; --c: #0ea5d8; --d: #9b4dff; }
+/* Gate: until the lead form is sent the page is quiet and light: the page colour, one soft brand-blue light from the
+   top, a faint indigo tint low in a corner, a fine grid that fades out from the centre, and a little grain. The light
+   breathes slowly; nothing else moves. On send it fades out, the real map sweeps in, then the header and footer */
+.morph { --glow: color-mix(in oklab, var(--blue) 16%, transparent); --tint: color-mix(in oklab, #6a5cff 9%, transparent); --line: color-mix(in oklab, var(--gray-900) 6%, transparent);
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 700ms var(--ease-out);
+  background: radial-gradient(ellipse 70% 55% at 50% -8%, var(--glow), transparent 70%), radial-gradient(ellipse 50% 45% at 100% 105%, var(--tint), transparent 70%), var(--bg); }
+:root[data-theme='dark'] .morph { --glow: color-mix(in oklab, var(--blue) 22%, transparent); --tint: color-mix(in oklab, #6a5cff 14%, transparent); --line: oklch(1 0 0 / .045); }
 .is-gated .morph { opacity: 1; }
-.morph::before { content: ""; position: absolute; inset: -25%; filter: blur(70px) saturate(1.2); opacity: .55;
-  background: conic-gradient(from 0deg at 50% 50%, var(--a), var(--c), var(--b), var(--d), var(--a)); animation: swirl 40s linear infinite; }
-:root[data-theme='dark'] .morph::before { opacity: .45; }
-@keyframes swirl { to { rotate: 1turn; } }
-.morph i { position: absolute; width: 58vmax; height: 58vmax; border-radius: 50%; filter: blur(60px); mix-blend-mode: normal; opacity: .8;
-  animation: drift 22s var(--ease-std) infinite alternate; }
-.morph i:nth-child(1) { left: -14vmax; top: -18vmax; background: radial-gradient(closest-side, var(--a), transparent); }
-.morph i:nth-child(2) { right: -16vmax; top: -10vmax; background: radial-gradient(closest-side, var(--d), transparent); opacity: .55; animation-duration: 27s; animation-delay: -9s; }
-.morph i:nth-child(3) { left: 18vmax; bottom: -26vmax; background: radial-gradient(closest-side, var(--c), transparent); opacity: .6; animation-duration: 31s; animation-delay: -4s; }
-.morph i:nth-child(4) { right: 6vmax; bottom: -20vmax; background: radial-gradient(closest-side, var(--b), transparent); opacity: .7; animation-duration: 25s; animation-delay: -15s; }
-@keyframes drift { 33% { translate: 8vmax 5vmax; scale: 1.15; } 66% { translate: -6vmax 9vmax; scale: .9; } 100% { translate: 5vmax -6vmax; scale: 1.08; } }
-/* A soft light wash where the form sits, and grain over everything */
-.morph b { position: absolute; inset: 0; background: radial-gradient(ellipse 46% 42% at 50% 50%, color-mix(in oklab, var(--base) 55%, transparent), transparent 75%); }
-.morph::after { content: ""; position: absolute; inset: 0; opacity: .14; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-.is-gated #lead { box-shadow: 0 0 0 1px oklch(1 0 0 / .5), 0 24px 60px -18px oklch(0.25 0.15 270 / .45); }
-:root[data-theme='dark'] .is-gated #lead { box-shadow: 0 0 0 1px oklch(1 0 0 / .1), 0 24px 70px -18px oklch(0 0 0 / .8); }
+.morph::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px; background-position: center; mask-image: radial-gradient(ellipse 60% 55% at 50% 40%, #000 10%, transparent 80%); }
+.morph i { position: absolute; left: 50%; top: -22vmax; width: 70vmax; height: 44vmax; translate: -50% 0; border-radius: 50%; background: radial-gradient(closest-side, var(--glow), transparent);
+  filter: blur(20px); animation: breathe 10s var(--ease-std) infinite alternate; }
+@keyframes breathe { from { opacity: .55; scale: .96; } to { opacity: 1; scale: 1.04; } }
+.morph::after { content: ""; position: absolute; inset: 0; opacity: .05; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+:root[data-theme='dark'] .morph::after { opacity: .08; }
 .is-gated .fit { opacity: 0; }
 #lead::backdrop { background: transparent; backdrop-filter: none; }
 .is-reveal .fit__stage { animation: reveal-fade 400ms var(--ease-out) both; }
@@ -176,7 +168,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .is-reveal .fit__foot { animation-delay: 1500ms; }
 @keyframes reveal-fade { from { opacity: 0; } }
 @keyframes reveal-rise { from { opacity: 0; translate: 0 8px; } }
-@media (prefers-reduced-motion: reduce) { .morph i, .morph::before, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .morph i, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
 .req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
 .req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
@@ -228,7 +220,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 </style>
 </head>
 <body>
-<div class="morph" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+<div class="morph" aria-hidden="true"><i></i></div>
 <div class="fit">
   <header class="nav">
     <div class="nav__title">
