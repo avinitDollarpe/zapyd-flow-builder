@@ -114,6 +114,37 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .req__site-text { display: grid; min-width: 0; }
 .req__site-text b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .req__site-text small { font-size: 12px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Phone with a country code picker: one control (code button + number); the list is a popover in the top layer, so the dialog never clips it */
+.tel { display: flex; align-items: center; height: 40px; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--gray-300); transition-property: box-shadow; transition-duration: 150ms; transition-timing-function: var(--ease-std); }
+.tel:hover { box-shadow: inset 0 0 0 1px var(--gray-400); }
+.tel:focus-within { box-shadow: inset 0 0 0 1px var(--blue), 0 0 0 3px var(--blue-50); }
+.tel:has([aria-invalid='true']) { box-shadow: inset 0 0 0 1px var(--red), 0 0 0 3px var(--red-bg); }
+.tel__cc { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 8px 0 12px; border: 0; border-right: 1px solid var(--hair); border-radius: 10px 0 0 10px; background: none; color: var(--gray-900); font: inherit; font-size: 14px; cursor: pointer; outline: 0; }
+.tel__cc:hover, .tel__cc[aria-expanded='true'] { background: var(--surface-2); }
+.tel__cc:focus-visible { background: var(--blue-25); }
+.tel__cc .flag { width: 20px; height: 15px; border-radius: 3px; box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08); object-fit: cover; }
+.tel__cc svg { color: var(--gray-500); transition-property: rotate; transition-duration: 150ms; transition-timing-function: var(--ease-std); }
+.tel__cc[aria-expanded='true'] svg { rotate: 180deg; }
+.req .tel .input { flex: 1; min-width: 0; height: 100%; padding: 0 12px 0 10px; border-radius: 0 10px 10px 0; background: none; box-shadow: none; }
+.cc { position: fixed; inset: auto; margin: 0; padding: 0; border: 0; border-radius: 14px; background: var(--surface); color: var(--gray-900); box-shadow: var(--float-shadow); overflow: hidden; }
+.cc:popover-open { display: flex; flex-direction: column; animation: cc-in 150ms var(--ease-out) both; }
+@keyframes cc-in { from { opacity: 0; translate: 0 -4px; scale: 0.98; } }
+.cc.is-up:popover-open { animation-name: cc-in-up; }
+@keyframes cc-in-up { from { opacity: 0; translate: 0 4px; scale: 0.98; } }
+.cc__search { flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--hair); color: var(--gray-400); }
+.cc__search input { flex: 1; min-width: 0; height: 42px; border: 0; background: none; color: var(--gray-900); font: inherit; font-size: 14px; outline: 0; }
+.cc__search input::placeholder { color: var(--gray-400); }
+.cc__list { flex: 1 1 auto; min-height: 0; margin: 0; padding: 6px; overflow-y: auto; overscroll-behavior: contain; list-style: none; scroll-padding: 6px; }
+.cc__item { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto 16px; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; font-size: 13.5px; cursor: pointer; user-select: none; }
+.cc__item .flag { width: 20px; height: 15px; border-radius: 3px; box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08); object-fit: cover; }
+.cc__name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cc__dial { color: var(--gray-500); font-variant-numeric: tabular-nums; }
+.cc__check { color: var(--blue); opacity: 0; }
+.cc__item[aria-selected='true'] .cc__name { font-weight: 600; }
+.cc__item[aria-selected='true'] .cc__check { opacity: 1; }
+.cc__item.is-active { background: var(--gray-100); }
+.cc__empty { padding: 18px 10px; color: var(--gray-500); font-size: 13px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .cc:popover-open { animation: none; } }
 .req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
 .req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
@@ -274,7 +305,16 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
       </div>
       <div class="req__row">
         <label class="req__field"><span>Work email</span><input class="input" name="email" type="email" autocomplete="email" maxlength="200" placeholder="asha@acme.com" required></label>
-        <label class="req__field"><span>Phone</span><input class="input" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="+1 212 555 0123" required></label>
+        <div class="req__field"><span id="phoneLabel">Phone</span>
+          <div class="tel">
+            <button type="button" class="tel__cc" id="ccBtn" popovertarget="ccPop" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><img class="flag" id="ccFlag" alt=""><span id="ccDial">+1</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+            <input class="input" name="phone" type="tel" autocomplete="tel-national" inputmode="tel" maxlength="20" placeholder="Phone number" aria-labelledby="phoneLabel" required>
+          </div>
+          <div class="cc" id="ccPop" popover>
+            <div class="cc__search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ccSearch" type="text" role="combobox" aria-expanded="true" aria-controls="ccList" aria-autocomplete="list" aria-label="Search countries" placeholder="Search country or code" autocomplete="off" spellcheck="false"></div>
+            <ul class="cc__list" id="ccList" role="listbox" aria-label="Countries"></ul>
+          </div>
+        </div>
       </div>
       <input class="req__hp" name="fax" tabindex="-1" autocomplete="off" aria-hidden="true">
     </div>
@@ -410,11 +450,84 @@ const open = () => {
   $('leadFlag').innerHTML = GLOBE
   lead.showModal(); leadForm.elements.name.focus()
 }
+// ── Phone country code: every region libphonenumber dials (iso2 + code), names from the browser (Intl) ──
+const DIAL = 'ad376 ae971 af93 ag1 ai1 al355 am374 ao244 ar54 as1 at43 au61 aw297 ax358 az994 ba387 bb1 bd880 be32 bf226 bg359 bh973 bi257 bj229 bl590 bm1 bn673 bo591 bq599 br55 bs1 bt975 bw267 by375 bz501 ca1 cc61 cd243 cf236 cg242 ch41 ci225 ck682 cl56 cm237 cn86 co57 cr506 cu53 cv238 cw599 cx61 cy357 cz420 de49 dj253 dk45 dm1 do1 dz213 ec593 ee372 eg20 eh212 er291 es34 et251 fi358 fj679 fk500 fm691 fo298 fr33 ga241 gb44 gd1 ge995 gf594 gg44 gh233 gi350 gl299 gm220 gn224 gp590 gq240 gr30 gt502 gu1 gw245 gy592 hk852 hn504 hr385 ht509 hu36 id62 ie353 il972 im44 in91 io246 iq964 ir98 is354 it39 je44 jm1 jo962 jp81 ke254 kg996 kh855 ki686 km269 kn1 kp850 kr82 kw965 ky1 kz7 la856 lb961 lc1 li423 lk94 lr231 ls266 lt370 lu352 lv371 ly218 ma212 mc377 md373 me382 mf590 mg261 mh692 mk389 ml223 mm95 mn976 mo853 mp1 mq596 mr222 ms1 mt356 mu230 mv960 mw265 mx52 my60 mz258 na264 nc687 ne227 nf672 ng234 ni505 nl31 no47 np977 nr674 nu683 nz64 om968 pa507 pe51 pf689 pg675 ph63 pk92 pl48 pm508 pr1 ps970 pt351 pw680 py595 qa974 re262 ro40 rs381 ru7 rw250 sa966 sb677 sc248 sd249 se46 sg65 sh290 si386 sj47 sk421 sl232 sm378 sn221 so252 sr597 ss211 st239 sv503 sx1 sy963 sz268 tc1 td235 tg228 th66 tj992 tk690 tl670 tm993 tn216 to676 tr90 tt1 tv688 tw886 tz255 ua380 ug256 us1 uy598 uz998 va39 vc1 ve58 vg1 vi1 vn84 vu678 wf681 ws685 xk383 ye967 yt262 za27 zm260 zw263'
+const regionName = new Intl.DisplayNames(['en'], { type: 'region' })
+const CC = DIAL.split(' ').map(x => { const iso = x.slice(0, 2), dial = x.slice(2); return { iso, dial, name: regionName.of(iso.toUpperCase()) } })
+  .sort((a, b) => a.name.localeCompare(b.name))
+const ccPop = $('ccPop'), ccBtn = $('ccBtn'), ccSearch = $('ccSearch'), ccList = $('ccList'), phoneIn = leadForm.elements.phone
+// The visitor's region from the browser language (en-IN -> India), else the USA
+let cc = CC.find(c => c.iso === navigator.languages.map(l => l.split('-')[1]?.toLowerCase()).find(r => CC.some(c => c.iso === r))) ?? CC.find(c => c.iso === 'us')
+let shown = CC, active = 0
+ccList.innerHTML = CC.map((c, i) => `<li class="cc__item" role="option" id="cc-${c.iso}" data-i="${i}" aria-selected="false"><img class="flag" src="${Z.flagUrl({ flag: c.iso })}" alt="" loading="lazy"><span class="cc__name"></span><span class="cc__dial">+${c.dial}</span><svg class="cc__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17l9-10"/></svg></li>`).join('') + '<li class="cc__empty" hidden>No country matches</li>'
+ccList.querySelectorAll('.cc__name').forEach((el, i) => { el.textContent = CC[i].name })
+const items = [...ccList.querySelectorAll('.cc__item')], empty = ccList.querySelector('.cc__empty')
+const setCC = c => {
+  cc = c; $('ccFlag').src = Z.flagUrl({ flag: c.iso }); $('ccDial').textContent = `+${c.dial}`
+  ccBtn.setAttribute('aria-label', `Country code: ${c.name} +${c.dial}`)
+  items.forEach((el, i) => el.setAttribute('aria-selected', CC[i] === c))
+}
+const setActive = i => {
+  active = Math.max(0, Math.min(i, shown.length - 1))
+  items.forEach(el => el.classList.remove('is-active'))
+  const el = shown[active] && items[CC.indexOf(shown[active])]
+  if (el) { el.classList.add('is-active'); el.scrollIntoView({ block: 'nearest' }); ccSearch.setAttribute('aria-activedescendant', el.id) } else ccSearch.removeAttribute('aria-activedescendant')
+}
+const filterCC = () => {
+  const q = ccSearch.value.trim().toLowerCase().replace(/^\+/, ''), digits = /^\d+$/.test(q)
+  shown = !q ? CC : CC.filter(c => digits ? c.dial.startsWith(q) : c.name.toLowerCase().includes(q) || c.iso === q)
+  if (digits) shown = [...shown].sort((a, b) => (a.dial === q ? 0 : 1) - (b.dial === q ? 0 : 1))
+  const on = new Set(shown)
+  items.forEach((el, i) => { el.hidden = !on.has(CC[i]) })
+  if (digits) shown.forEach(c => ccList.insertBefore(items[CC.indexOf(c)], empty))   // exact code first
+  else CC.forEach((c, i) => ccList.insertBefore(items[i], empty))
+  empty.hidden = shown.length > 0
+  setActive(q ? 0 : shown.indexOf(cc))
+}
+// Below the control, or above it when the viewport has no room
+const placeCC = () => {
+  const r = ccBtn.parentElement.getBoundingClientRect(), w = Math.max(r.width, 300), below = innerHeight - r.bottom - 18
+  const up = below < 240 && r.top - 18 > below
+  ccPop.classList.toggle('is-up', up)
+  Object.assign(ccPop.style, { width: `${w}px`, maxHeight: `${Math.min(320, up ? r.top - 18 : below)}px`, left: `${Math.max(12, Math.min(r.left, innerWidth - w - 12))}px`,
+    top: up ? 'auto' : `${r.bottom + 6}px`, bottom: up ? `${innerHeight - r.top + 6}px` : 'auto' })
+}
+ccPop.addEventListener('beforetoggle', e => { if (e.newState === 'open') { ccSearch.value = ''; filterCC(); placeCC() } })
+ccPop.addEventListener('toggle', e => {
+  const open = e.newState === 'open'; ccBtn.setAttribute('aria-expanded', open)
+  if (open) { ccSearch.focus(); setActive(shown.indexOf(cc)) }
+})
+const pickCC = c => { setCC(c); ccPop.hidePopover(); phoneIn.focus() }
+ccSearch.addEventListener('input', filterCC)
+ccSearch.addEventListener('keydown', e => {
+  const page = Math.floor(ccList.clientHeight / 36)
+  const move = { ArrowDown: 1, ArrowUp: -1, PageDown: page, PageUp: -page }[e.key]
+  if (move) { e.preventDefault(); setActive(active + move) }
+  else if (e.key === 'Home' && !ccSearch.value) { e.preventDefault(); setActive(0) }
+  else if (e.key === 'End' && !ccSearch.value) { e.preventDefault(); setActive(shown.length - 1) }
+  else if (e.key === 'Enter') { e.preventDefault(); if (shown[active]) pickCC(shown[active]) }
+  else if (e.key === 'Tab') ccPop.hidePopover()
+  else if (e.key === 'Escape') { e.preventDefault(); ccPop.hidePopover(); ccBtn.focus() }
+})
+ccList.addEventListener('pointermove', e => { const el = e.target.closest('.cc__item'); if (el && !el.classList.contains('is-active')) setActive(shown.indexOf(CC[+el.dataset.i])) })
+ccList.addEventListener('click', e => { const el = e.target.closest('.cc__item'); if (el) pickCC(CC[+el.dataset.i]) })
+ccBtn.addEventListener('keydown', e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); ccPop.showPopover() } })
+lead.querySelector('.req__body').addEventListener('scroll', () => ccPop.matches(':popover-open') && placeCC())
+addEventListener('resize', () => ccPop.matches(':popover-open') && ccPop.hidePopover())
+// A pasted or typed +code picks its country (longest code first; +1 keeps a +1 country already picked)
+phoneIn.addEventListener('input', () => {
+  const m = phoneIn.value.match(/^\s*\+\s*(\d{1,4})/); if (!m) return
+  const hit = (m[1].startsWith(cc.dial) && cc) || [...CC].sort((a, b) => b.dial.length - a.dial.length).find(c => m[1].startsWith(c.dial))
+  if (!hit) return
+  setCC(hit); phoneIn.value = phoneIn.value.replace(new RegExp(`^\\s*\\+\\s*${hit.dial}[\\s-]*`), '')
+})
+setCC(cc)
 lead.addEventListener('cancel', e => e.preventDefault())   // the form comes first: no Esc, no backdrop close
 leadForm.addEventListener('submit', async e => {
   e.preventDefault()
   const f = leadForm.elements, bad = []
-  const phoneOk = /^\+?[\d\s().-]{7,25}$/.test(f.phone.value.trim()) && f.phone.value.replace(/\D/g, '').length >= 7
+  const national = f.phone.value.replace(/\D/g, '')
+  const phoneOk = /^[\d\s().-]+$/.test(f.phone.value.trim()) && national.length >= 4 && cc.dial.length + national.length <= 15
   for (const [name, label, ok] of [['name', 'your name', !!f.name.value.trim()], ['company', 'your company', !!f.company.value.trim()],
     ['email', 'a work email', !!f.email.value.trim() && f.email.checkValidity()], ['phone', 'a phone number', phoneOk]]) {
     f[name].setAttribute('aria-invalid', !ok); if (!ok) bad.push(label)
@@ -422,7 +535,7 @@ leadForm.addEventListener('submit', async e => {
   if (bad.length) { leadError(`Add ${bad.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`); leadForm.querySelector('[aria-invalid="true"]').focus(); return }
   const btn = $('leadSubmit'); btn.setAttribute('aria-busy', 'true'); leadError('')
   try {
-    await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: f.phone.value.trim(), country: Z.cur().name, fax: f.fax.value })
+    await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: `+${cc.dial} ${f.phone.value.trim()}`, country: Z.cur().name, fax: f.fax.value })
     try { localStorage.setItem(LEAD_KEY, '1') } catch {}
     Z.unlocked = true; closeDialog(lead)
   } catch (err) {
