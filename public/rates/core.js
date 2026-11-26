@@ -344,10 +344,10 @@ Z.map = (el, opts = {}) => {
   const speed = s => `<span class="speed${s === 'Instant' ? '' : ' slow'}"><i></i>${s}</span>`
   const tipHtml = m => {
     if ((Z.state.filter === 'payin' || !m.payout) && m.payin) return card({ flag: Z.flag(m), name: m.name, chip: Z.state.asset,
-      pre: '1 USD =', value: Z.fmt(Z.payinRate(), 4), unit: Z.state.asset, foot: `Payin · 1:1 less ${Z.state.tier} bps`, action: 'History' })
+      pre: '1 USD =', value: Z.unlocked ? Z.fmt(Z.payinRate(), 4) : '•••', unit: Z.state.asset, foot: `Payin · 1:1 less ${Z.state.tier} bps`, action: 'History' })
     const meth = m.methods[0]
     return card({ flag: Z.flag(m), name: m.name, chip: m.cur, pre: '1 USDC =',
-      value: Z.fmt(m.mid, m.dp), unit: m.cur, delta: `<span class="tip__delta">${Z.delta(Z.change(meth))}<span>24h</span></span>`,
+      value: Z.unlocked ? Z.fmt(m.mid, m.dp) : '•••', unit: m.cur, delta: `<span class="tip__delta">${Z.delta(Z.change(meth))}<span>24h</span></span>`,
       foot: `${speed(meth.speed)}<span>${m.payin ? 'Payin and payout' : 'Payout'}</span>`, action: 'History' })
   }
   const otherHtml = c => card({ flag: c.iso ? `<img class="flag" src="${Z.flagUrl({ flag: c.iso })}" alt="">` : '', name: c.name,
@@ -426,7 +426,8 @@ Z.filters = (el, { flow = true, method = true, range = false } = {}) => {
     (range ? '<div class="seg" data-f="range" role="group" aria-label="Range">' + Object.keys(Z.RANGES).map(r => `<button data-v="${r}">${r}</button>`).join('') + '</div>' : '')
   const q = s => el.querySelector(`[data-f="${s}"]`)
   const draw = () => {
-    if (flow) q('flow').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === Z.state.flow))
+    // Payin only where the shown market takes it (the USA): a payout-only market has no flow toggle
+    if (flow) { q('flow').style.display = Z.view().m.payin ? '' : 'none'; q('flow').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === Z.state.flow)) }
     if (range) q('range').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === Z.state.range))
     if (method) {
       const v = Z.view()
@@ -557,7 +558,7 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
   el.innerHTML = (controls ? '<div class="rc__controls"></div>' : '') +
     `<div class="rc__rate"><span class="rc__pre"></span><div class="rc__row"><b class="rc__big num sk"></b><span class="rc__cur"></span>
       <button class="rc__swap" type="button" aria-pressed="false" aria-label="Show the inverse rate">${Z.icon.swap}</button></div>
-      <div class="rc__meta"></div></div><dl class="rc__facts"></dl><p class="rc__note">Indicative rate, refreshed every minute. Your rate is fixed when you create a quotation.</p>${list ? '<div class="rc__list"></div>' : ''}`
+      <div class="rc__meta"></div></div><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
   if (controls) Z.filters(el.querySelector('.rc__controls'))
   const $ = s => el.querySelector(s)
   let invert = false
@@ -565,10 +566,13 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
     const v = Z.view(), r = invert ? 1 / v.rate : v.rate, from = invert ? v.quote : v.base, to = invert ? v.base : v.quote
     $('.rc__pre').textContent = `1 ${from} =`
     const big = $('.rc__big'); big.textContent = invert ? Z.sig(r) : Z.fmt(r, v.dp); $('.rc__cur').textContent = to
-    $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span><span class="${v.modelClass}">${v.model}</span>`
+    $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span><span class="${v.modelClass}">${v.model}${v.flow === 'payout' ? '*' : ''}</span>`
     const facts = v.flow === 'payin'
       ? [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]]
       : [['Speed', `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span>`], ['Fixed fee', v.fee], ['Per transfer', v.meth.limit ?? 'No limit']]
+    // Payout shows the standard rate (*); the fixed fee is always charged. Payin already shows its volume tiers
+    $('.rc__note').textContent = (v.flow === 'payout' ? '*Standard rate. Volume-based pricing is available for higher monthly volumes. ' : '') +
+      'Rates are indicative and refresh every minute. Your rate is locked when you create a quotation.'
     $('.rc__facts').innerHTML = facts.map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
     if (list) $('.rc__list').innerHTML = v.flow === 'payin'
       ? `<div class="label">Deposit fee per transaction</div>${Z.DEPOSITS.map(([n, f]) => `<div class="rc__item"><span>${n}</span><b class="num">${f}</b></div>`).join('')}`

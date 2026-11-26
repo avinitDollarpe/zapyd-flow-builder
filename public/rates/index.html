@@ -114,6 +114,59 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .req__site-text { display: grid; min-width: 0; }
 .req__site-text b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .req__site-text small { font-size: 12px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Phone with a country code picker: one control (code button + number); the list is a popover in the top layer, so the dialog never clips it */
+.tel { box-sizing: border-box; display: flex; align-items: center; height: 40px; border: 1px solid var(--gray-300); border-radius: 10px; background: var(--surface); transition-property: border-color, box-shadow; transition-duration: 150ms; transition-timing-function: var(--ease-std); }
+.tel:hover { border-color: var(--gray-400); }
+.tel:focus-within, .tel:has([aria-expanded='true']) { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-50); }
+.tel:has([aria-invalid='true']) { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
+.tel__cc { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 8px 0 11px; border: 0; border-right: 1px solid var(--hair); border-radius: 9px 0 0 9px; background: none; color: var(--gray-900); font: inherit; font-size: 14px; cursor: pointer; outline: 0; }
+.tel__cc:hover, .tel__cc[aria-expanded='true'] { background: var(--surface-2); }
+.tel__cc:focus-visible { background: var(--blue-25); }
+.tel__cc .flag { width: 20px; height: 15px; border-radius: 3px; box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08); object-fit: cover; }
+.tel__cc svg { color: var(--gray-500); transition-property: rotate; transition-duration: 150ms; transition-timing-function: var(--ease-std); }
+.tel__cc[aria-expanded='true'] svg { rotate: 180deg; }
+.req .tel .input { flex: 1; min-width: 0; height: 100%; padding: 0 12px 0 10px; border-radius: 0 9px 9px 0; background: none; box-shadow: none; }
+.cc { position: fixed; inset: auto; margin: 0; padding: 0; border: 0; border-radius: 14px; background: var(--surface); color: var(--gray-900); box-shadow: var(--float-shadow); overflow: hidden; }
+.cc:popover-open { display: flex; flex-direction: column; animation: cc-in 150ms var(--ease-out) both; }
+@keyframes cc-in { from { opacity: 0; translate: 0 -4px; scale: 0.98; } }
+.cc.is-up:popover-open { animation-name: cc-in-up; }
+@keyframes cc-in-up { from { opacity: 0; translate: 0 4px; scale: 0.98; } }
+.cc__search { flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--hair); color: var(--gray-400); }
+.cc__search input { flex: 1; min-width: 0; height: 42px; border: 0; background: none; color: var(--gray-900); font: inherit; font-size: 14px; outline: 0; }
+.cc__search input::placeholder { color: var(--gray-400); }
+.cc__list { flex: 1 1 auto; min-height: 0; margin: 0; padding: 6px; overflow-y: auto; overscroll-behavior: contain; list-style: none; scroll-padding: 6px; }
+.cc__item { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto 16px; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; font-size: 13.5px; cursor: pointer; user-select: none; }
+.cc__item .flag { width: 20px; height: 15px; border-radius: 3px; box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08); object-fit: cover; }
+.cc__name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cc__dial { color: var(--gray-500); font-variant-numeric: tabular-nums; }
+.cc__check { color: var(--blue); opacity: 0; }
+.cc__item[aria-selected='true'] .cc__name { font-weight: 600; }
+.cc__item[aria-selected='true'] .cc__check { opacity: 1; }
+.cc__item.is-active { background: var(--gray-100); }
+.cc__empty { padding: 18px 10px; color: var(--gray-500); font-size: 13px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .cc:popover-open { animation: none; } }
+/* Gate: until the lead form is sent the page is a soft morphing gradient behind the form; then the map's dot sweep
+   plays, and the header and footer rise in after it */
+.morph { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 700ms var(--ease-out); }
+.is-gated .morph { opacity: 1; }
+.morph i { position: absolute; width: 62vmax; height: 62vmax; border-radius: 50%; filter: blur(90px); opacity: .42; animation: morph 24s var(--ease-std) infinite alternate; }
+.morph i:nth-child(1) { left: -18vmax; top: -24vmax; background: #7b9aff; }
+.morph i:nth-child(2) { right: -24vmax; top: 6vmax; background: #1b58ff; opacity: .22; animation-duration: 28s; animation-delay: -8s; }
+.morph i:nth-child(3) { left: 16vmax; bottom: -36vmax; background: #b9c8ff; opacity: .5; animation-duration: 32s; animation-delay: -14s; }
+@keyframes morph {
+  0% { translate: 0 0; scale: 1; border-radius: 42% 58% 60% 40% / 45% 40% 60% 55%; }
+  50% { translate: 9vmax 6vmax; scale: 1.15; border-radius: 60% 40% 35% 65% / 55% 60% 40% 45%; }
+  100% { translate: -7vmax 10vmax; scale: .94; border-radius: 45% 55% 50% 50% / 60% 45% 55% 40%; }
+}
+.is-gated .fit { opacity: 0; }
+#lead::backdrop { background: transparent; backdrop-filter: none; }
+.is-reveal .fit__stage { animation: reveal-fade 400ms var(--ease-out) both; }
+.is-reveal .nav, .is-reveal .fit__foot { animation: reveal-rise 500ms var(--ease-out) both; }
+.is-reveal .nav { animation-delay: 1300ms; }
+.is-reveal .fit__foot { animation-delay: 1500ms; }
+@keyframes reveal-fade { from { opacity: 0; } }
+@keyframes reveal-rise { from { opacity: 0; translate: 0 8px; } }
+@media (prefers-reduced-motion: reduce) { .morph i, .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
 .req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
 .req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
@@ -165,6 +218,7 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 </style>
 </head>
 <body>
+<div class="morph" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="fit">
   <header class="nav">
     <div class="nav__title">
@@ -257,11 +311,52 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
     <button type="button" class="btn btn--primary" id="reqOk">Done</button>
   </div>
 </dialog>
+<dialog class="req" id="lead" aria-labelledby="leadTitle" aria-describedby="leadLede" tabindex="-1">
+  <form class="req__form" id="leadForm" novalidate>
+    <div class="req__head">
+      <span class="req__badge" id="leadFlag"></span>
+      <div>
+        <span class="req__kicker">Rate card</span>
+        <h2 id="leadTitle">Explore Zapyd's rates</h2>
+        <p id="leadLede">Tell us who you are to see the countries Zapyd supports, with today's rate, fees and price history for each.</p>
+      </div>
+    </div>
+    <div class="req__body">
+      <div class="req__row">
+        <label class="req__field"><span>Full name</span><input class="input" name="name" autocomplete="name" maxlength="120" placeholder="Asha Rao" required></label>
+        <label class="req__field"><span>Company</span><input class="input" name="company" autocomplete="organization" maxlength="120" placeholder="Acme" required></label>
+      </div>
+      <div class="req__row">
+        <label class="req__field"><span>Work email</span><input class="input" name="email" type="email" autocomplete="email" maxlength="200" placeholder="asha@acme.com" required></label>
+        <div class="req__field"><span id="phoneLabel">Phone</span>
+          <div class="tel">
+            <button type="button" class="tel__cc" id="ccBtn" popovertarget="ccPop" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><img class="flag" id="ccFlag" alt=""><span id="ccDial">+1</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+            <input class="input" name="phone" type="tel" autocomplete="tel-national" inputmode="tel" maxlength="20" placeholder="Phone number" aria-labelledby="phoneLabel" required>
+          </div>
+          <div class="cc" id="ccPop" popover>
+            <div class="cc__search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ccSearch" type="text" role="combobox" aria-expanded="true" aria-controls="ccList" aria-autocomplete="list" aria-label="Search countries" placeholder="Search country or code" autocomplete="off" spellcheck="false"></div>
+            <ul class="cc__list" id="ccList" role="listbox" aria-label="Countries"></ul>
+          </div>
+        </div>
+      </div>
+      <input class="req__hp" name="fax" tabindex="-1" autocomplete="off" aria-hidden="true">
+    </div>
+    <div class="req__foot">
+      <p class="req__note" id="leadNote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Used only to contact you about Zapyd</p>
+      <p class="req__error" id="leadError" role="alert" hidden></p>
+      <button class="btn btn--primary req__submit" id="leadSubmit">See rates<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+    </div>
+  </form>
+</dialog>
 <script src="dots.js"></script>
+<script src="phone.js"></script>
 <script src="core.js"></script>
 <script>
 // Google Apps Script web app that appends each request to a Google Sheet (see scripts/request-access.gs).
 // Leave empty while there is no sheet: requests are then simulated and logged to the console.
+const LEAD_KEY = 'zapyd-rates-lead'
+try { Z.unlocked = !!localStorage.getItem(LEAD_KEY) } catch { Z.unlocked = false }
+if (!Z.unlocked) document.body.classList.add('is-gated')
 const REQUEST_URL = 'https://script.google.com/macros/s/AKfycbxJJ1aZRZ_dYcX0BOOMKBD1cPL0wpxeyZQGlgmeE1uqpSUi5w6k7fCiQrsrHWDQpWCC/exec'
 
 Z.boot()
@@ -281,7 +376,7 @@ const lift = () => {
   shift = Math.max(0, Math.min(y + 32 - sheetTop, r.height * .6))
   mapEl.style.translate = `0 ${-shift}px`
 }
-const open = () => {
+const showSheet = () => {
   if (!sheet.classList.contains('is-open')) opener = document.activeElement
   chart ??= Z.chart($('chart'), { height: 228, label: false, stats: $('stats') })   // first open: the chart intro plays in view
   sheet.classList.add('is-open'); document.body.classList.add('is-sheet'); lift()
@@ -296,7 +391,9 @@ const FLOWS = { payout: 'Payout', payin: 'Payin', both: 'Payin and payout' }
 // The footer shows either the privacy note or the current error
 const showError = msg => { $('reqError').textContent = msg; $('reqError').hidden = !msg; $('reqNote').hidden = !!msg }
 form.addEventListener('input', e => e.target.closest('[aria-invalid]')?.removeAttribute('aria-invalid'))
+let reqAt = 0   // when the form opened: a bot sends it within a second or two
 const openRequest = c => {
+  reqAt = Date.now()
   if (sheet.classList.contains('is-open')) close()
   country = c
   form.querySelectorAll('[data-country]').forEach(e => { e.textContent = c.name })
@@ -306,16 +403,47 @@ const openRequest = c => {
   form.querySelectorAll('[aria-invalid]').forEach(f => f.removeAttribute('aria-invalid'))
   req.showModal(); req.focus()                 // focus the dialog itself; Tab reaches the first choice
 }
-const closeRequest = () => {
-  if (!req.open || req.classList.contains('is-closing')) return
-  if (Z.REDUCED) return req.close()
-  req.classList.add('is-closing')
-  setTimeout(() => { req.classList.remove('is-closing'); req.close() }, 150)
+const closeDialog = d => {
+  if (!d.open || d.classList.contains('is-closing')) return
+  if (Z.REDUCED) return d.close()
+  d.classList.add('is-closing')
+  setTimeout(() => { d.classList.remove('is-closing'); d.close() }, 150)
 }
+const closeRequest = () => closeDialog(req)
 req.addEventListener('cancel', e => { e.preventDefault(); closeRequest() })                 // Esc
 req.addEventListener('click', e => { if (e.target === req) closeRequest() })                 // backdrop
 $('reqClose').addEventListener('click', closeRequest); $('reqCancel').addEventListener('click', closeRequest); $('reqOk').addEventListener('click', closeRequest)
 
+// ── Spam checks (scripts/request-access.gs repeats the email and phone rules) ──
+// A work email: a real address on a company domain, not a personal or throwaway inbox. A personal provider is
+// matched by its name on a country domain too (yahoo.co.uk, gmx.de)
+const FREE_MAIL = new Set(('gmail googlemail yahoo ymail rocketmail hotmail outlook live msn icloud me mac aol proton protonmail pm gmx ' +
+  'yandex zoho zohomail rediffmail mail inbox tutanota tuta fastmail hey web qq 163 126 sina naver daum hanmail rambler seznam libero ' +
+  'comcast.net verizon.net att.net sbcglobal.net btinternet.com sky.com orange.fr free.fr laposte.net t-online.de wp.pl o2.pl interia.pl bk.ru list.ru').split(' '))
+const DISPOSABLE = new Set(('mailinator guerrillamail sharklasers grr 10minutemail tempmail temp-mail yopmail trashmail getnada nada dispostable ' +
+  'maildrop mailnesia throwawaymail fakeinbox mintemail mohmal emailondeck tempr discard spamgourmet burnermail moakt 33mail mytemp ' +
+  'tempinbox mailcatch spambox mailpoof tempmailo emailfake fakemail inboxkitten 1secmail').split(' '))
+const COUNTRY_TLD = /^(?:(?:co|com|net|org|ac)\.)?[a-z]{2,3}$/
+const emailProblem = v => {
+  const m = v.trim().toLowerCase().match(/^[a-z0-9](?:[a-z0-9._%+'-]{0,62}[a-z0-9])?@((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24})$/)
+  if (!m || v.includes('..')) return 'Enter a valid work email.'
+  const domain = m[1], [name, ...rest] = domain.split('.')
+  if (/\.(test|example|invalid|localhost|local)$/.test(domain) || /^example\.(com|net|org)$/.test(domain)) return 'Enter a real work email.'
+  if (DISPOSABLE.has(name)) return 'Use your work email, not a temporary inbox.'
+  if (FREE_MAIL.has(domain) || (FREE_MAIL.has(name) && COUNTRY_TLD.test(rest.join('.')))) return 'Use your work email, not a personal one.'
+  return ''
+}
+// A phone number that exists: it matches a mobile or landline pattern of a region with that country code
+// (+44 is also Jersey, +1 also Canada), and is not one repeated digit or a 0123456789 run
+const phoneRes = {}
+const phoneProblem = (c, value) => {
+  const v = value.trim(), n = v.replace(/\D/g, '')
+  if (!/^[\d\s().-]+$/.test(v)) return 'Enter the phone number with digits only.'
+  const res = phoneRes[c.dial] ??= Object.entries(PHONE).filter(([, [d]]) => d === c.dial).map(([, [, p]]) => new RegExp(`^(?:${p})$`))
+  const real = [n, n.replace(/^0+/, '')].some(x => res.some(r => r.test(x)))   // a leading trunk 0 (07911...) is fine
+  const junk = /^(\d)\1+$/.test(n) || (n.length >= 7 && ('01234567890123456789'.includes(n) || '98765432109876543210'.includes(n)))
+  return real && !junk ? '' : `Check the phone number for ${c.name}.`
+}
 const send = async payload => {
   if (!REQUEST_URL) { console.info('Request access (simulated; set REQUEST_URL to save it):', payload); return new Promise(r => setTimeout(r, 600)) }
   // text/plain body keeps this a simple request, so Apps Script needs no CORS preflight
@@ -344,20 +472,20 @@ form.elements.website.addEventListener('input', () => { clearTimeout(previewTime
 
 form.addEventListener('submit', async e => {
   e.preventDefault()
-  const f = form.elements, bad = []
+  const f = form.elements, bad = [], mailProblem = f.email.value.trim() ? emailProblem(f.email.value) : ''
   for (const [name, label] of [['volume', 'your volume'], ['website', 'your company website'], ['email', 'a work email']]) {
-    const ok = name === 'website' ? !!siteUrl(f.website.value) : !!f[name].value.trim() && (name === 'volume' || f[name].checkValidity())
+    const ok = name === 'website' ? !!siteUrl(f.website.value) : name === 'email' ? !!f.email.value.trim() && !mailProblem : !!f[name].value
     const el = name === 'volume' ? $('reqVolume') : f[name]   // radios are flagged on their fieldset
     el.setAttribute('aria-invalid', !ok); if (!ok) bad.push(label)
   }
   if (bad.length) {
-    showError(`Add ${bad.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`)
+    showError(bad.length === 1 && mailProblem ? mailProblem : `Add ${bad.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`)
     const first = form.querySelector('[aria-invalid="true"]'); (first.matches('fieldset') ? first.querySelector('input') : first).focus(); return
   }
   const btn = $('reqSubmit'); btn.setAttribute('aria-busy', 'true'); showError('')
   try {
     const url = siteUrl(f.website.value)
-    await send({ country: country.name, flow: f.flow.value, volume: f.volume.value, website: url.href, email: f.email.value.trim(), notes: f.notes.value.trim(), fax: f.fax.value })
+    await send({ country: country.name, flow: f.flow.value, volume: f.volume.value, website: url.href, email: f.email.value.trim(), notes: f.notes.value.trim(), fax: f.fax.value, elapsed: Date.now() - reqAt })
     $('reqDoneText').textContent = `Thanks. We'll reply to ${f.email.value.trim()} about ${FLOWS[f.flow.value].toLowerCase()} in ${country.name}.`
     const row = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`
     $('reqSum').innerHTML = row('Country', $('reqFlag').querySelector('img')?.outerHTML ?? '') + row('Company', site.icon ? `<img class="flag" style="width:16px;height:16px;border-radius:4px" src="${site.icon}" alt="">` : '') + row('Need', FLOWS[f.flow.value]) + row('Monthly volume', f.volume.value)
@@ -368,8 +496,124 @@ form.addEventListener('submit', async e => {
   } finally { btn.removeAttribute('aria-busy') }
 })
 
-Z.map(mapEl, { onPick: open, onRequest: openRequest })
+// ── Page access: name, company, email and phone before the map and rates, once per browser (stored in the same sheet) ──
+// ponytail: a browser flag, not access control; the rates API stays public
+const lead = $('lead'), leadForm = $('leadForm')
+const leadError = msg => { $('leadError').textContent = msg; $('leadError').hidden = !msg; $('leadNote').hidden = !!msg }
+leadForm.addEventListener('input', e => e.target.removeAttribute('aria-invalid'))
+let leadAt = 0
+const open = () => {
+  if (Z.unlocked) return showSheet()
+  leadError(''); leadForm.querySelectorAll('[aria-invalid]').forEach(f => f.removeAttribute('aria-invalid'))
+  $('leadFlag').innerHTML = GLOBE
+  leadAt = Date.now(); lead.showModal(); leadForm.elements.name.focus()
+}
+// ── Phone country code: every region libphonenumber dials (phone.js, scripts/gen-phone.py), names from the browser (Intl) ──
+const regionName = new Intl.DisplayNames(['en'], { type: 'region' })
+const CC = Object.entries(PHONE).map(([iso, [dial]]) => ({ iso, dial, name: regionName.of(iso.toUpperCase()) }))
+  .sort((a, b) => a.name.localeCompare(b.name))
+const ccPop = $('ccPop'), ccBtn = $('ccBtn'), ccSearch = $('ccSearch'), ccList = $('ccList'), phoneIn = leadForm.elements.phone
+// The visitor's region from the browser language (en-IN -> India), else the USA
+let cc = CC.find(c => c.iso === navigator.languages.map(l => l.split('-')[1]?.toLowerCase()).find(r => CC.some(c => c.iso === r))) ?? CC.find(c => c.iso === 'us')
+let shown = CC, active = 0
+ccList.innerHTML = CC.map((c, i) => `<li class="cc__item" role="option" id="cc-${c.iso}" data-i="${i}" aria-selected="false"><img class="flag" src="${Z.flagUrl({ flag: c.iso })}" alt="" loading="lazy"><span class="cc__name"></span><span class="cc__dial">+${c.dial}</span><svg class="cc__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17l9-10"/></svg></li>`).join('') + '<li class="cc__empty" hidden>No country matches</li>'
+ccList.querySelectorAll('.cc__name').forEach((el, i) => { el.textContent = CC[i].name })
+const items = [...ccList.querySelectorAll('.cc__item')], empty = ccList.querySelector('.cc__empty')
+const setCC = c => {
+  cc = c; $('ccFlag').src = Z.flagUrl({ flag: c.iso }); $('ccDial').textContent = `+${c.dial}`
+  ccBtn.setAttribute('aria-label', `Country code: ${c.name} +${c.dial}`)
+  items.forEach((el, i) => el.setAttribute('aria-selected', CC[i] === c))
+}
+const setActive = i => {
+  active = Math.max(0, Math.min(i, shown.length - 1))
+  items.forEach(el => el.classList.remove('is-active'))
+  const el = shown[active] && items[CC.indexOf(shown[active])]
+  if (el) { el.classList.add('is-active'); el.scrollIntoView({ block: 'nearest' }); ccSearch.setAttribute('aria-activedescendant', el.id) } else ccSearch.removeAttribute('aria-activedescendant')
+}
+const filterCC = () => {
+  const q = ccSearch.value.trim().toLowerCase().replace(/^\+/, ''), digits = /^\d+$/.test(q)
+  shown = !q ? CC : CC.filter(c => digits ? c.dial.startsWith(q) : c.name.toLowerCase().includes(q) || c.iso === q)
+  const rank = c => digits ? (c.dial === q ? 0 : 1) : c.name.toLowerCase().startsWith(q) || c.iso === q ? 0 : 1
+  if (q) shown = [...shown].sort((a, b) => rank(a) - rank(b))   // exact code, or name start, first
+  const on = new Set(shown)
+  items.forEach((el, i) => { el.hidden = !on.has(CC[i]) })
+  ;(q ? shown : CC).forEach(c => ccList.insertBefore(items[CC.indexOf(c)], empty))
+  empty.hidden = shown.length > 0
+  setActive(q ? 0 : shown.indexOf(cc))
+}
+// Below the control, or above it when the viewport has no room
+const placeCC = () => {
+  const r = ccBtn.parentElement.getBoundingClientRect(), w = Math.max(r.width, 300), below = innerHeight - r.bottom - 18
+  const up = below < 240 && r.top - 18 > below
+  ccPop.classList.toggle('is-up', up)
+  Object.assign(ccPop.style, { width: `${w}px`, maxHeight: `${Math.min(320, up ? r.top - 18 : below)}px`, left: `${Math.max(12, Math.min(r.right - w, innerWidth - w - 12))}px`,
+    top: up ? 'auto' : `${r.bottom + 6}px`, bottom: up ? `${innerHeight - r.top + 6}px` : 'auto' })
+}
+ccPop.addEventListener('beforetoggle', e => { if (e.newState === 'open') { ccSearch.value = ''; filterCC(); placeCC() } })
+ccPop.addEventListener('toggle', e => {
+  const open = e.newState === 'open'; ccBtn.setAttribute('aria-expanded', open)
+  if (open) { ccSearch.focus(); setActive(shown.indexOf(cc)) }
+})
+const pickCC = c => { setCC(c); ccPop.hidePopover(); phoneIn.focus() }
+ccSearch.addEventListener('input', filterCC)
+ccSearch.addEventListener('keydown', e => {
+  const page = Math.floor(ccList.clientHeight / 36)
+  const move = { ArrowDown: 1, ArrowUp: -1, PageDown: page, PageUp: -page }[e.key]
+  if (move) { e.preventDefault(); setActive(active + move) }
+  else if (e.key === 'Home' && !ccSearch.value) { e.preventDefault(); setActive(0) }
+  else if (e.key === 'End' && !ccSearch.value) { e.preventDefault(); setActive(shown.length - 1) }
+  else if (e.key === 'Enter') { e.preventDefault(); if (shown[active]) pickCC(shown[active]) }
+  else if (e.key === 'Tab') ccPop.hidePopover()
+  else if (e.key === 'Escape') { e.preventDefault(); ccPop.hidePopover(); ccBtn.focus() }
+})
+ccList.addEventListener('pointermove', e => { const el = e.target.closest('.cc__item'); if (el && !el.classList.contains('is-active')) setActive(shown.indexOf(CC[+el.dataset.i])) })
+ccList.addEventListener('click', e => { const el = e.target.closest('.cc__item'); if (el) pickCC(CC[+el.dataset.i]) })
+ccBtn.addEventListener('keydown', e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); ccPop.showPopover() } })
+lead.querySelector('.req__body').addEventListener('scroll', () => ccPop.matches(':popover-open') && placeCC())
+addEventListener('resize', () => ccPop.matches(':popover-open') && ccPop.hidePopover())
+// A pasted or typed +code picks its country (longest code first; +1 keeps a +1 country already picked)
+phoneIn.addEventListener('input', () => {
+  const m = phoneIn.value.match(/^\s*\+\s*(\d{1,4})/); if (!m) return
+  const hit = (m[1].startsWith(cc.dial) && cc) || [...CC].sort((a, b) => b.dial.length - a.dial.length).find(c => m[1].startsWith(c.dial))
+  if (!hit) return
+  setCC(hit); phoneIn.value = phoneIn.value.replace(new RegExp(`^\\s*\\+\\s*${hit.dial}[\\s-]*`), '')
+})
+setCC(cc)
+lead.addEventListener('cancel', e => e.preventDefault())   // the form comes first: no Esc, no backdrop close
+leadForm.addEventListener('submit', async e => {
+  e.preventDefault()
+  const f = leadForm.elements, missing = [], problems = []
+  // An empty field is listed; a filled one that fails its check shows that check's message
+  for (const [name, label, problem] of [
+    ['name', 'your name', () => /\p{L}/u.test(f.name.value) ? '' : 'Enter your name.'],
+    ['company', 'your company', () => /[\p{L}\d]/u.test(f.company.value) ? '' : 'Enter your company name.'],
+    ['email', 'a work email', () => emailProblem(f.email.value)],
+    ['phone', 'a phone number', () => phoneProblem(cc, f.phone.value)]]) {
+    const empty = !f[name].value.trim(), msg = empty ? '' : problem()
+    f[name].setAttribute('aria-invalid', empty || !!msg); if (empty) missing.push(label); else if (msg) problems.push(msg)
+  }
+  if (missing.length || problems.length) {
+    leadError(missing.length ? `Add ${missing.join(', ').replace(/, ([^,]*)$/, ' and $1')}.` : problems[0])
+    leadForm.querySelector('[aria-invalid="true"]').focus(); return
+  }
+  const btn = $('leadSubmit'); btn.setAttribute('aria-busy', 'true'); leadError('')
+  try {
+    await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: `+${cc.dial} ${f.phone.value.trim()}`, country: Z.cur().name, fax: f.fax.value, elapsed: Date.now() - leadAt })
+    try { localStorage.setItem(LEAD_KEY, '1') } catch {}
+    Z.unlocked = true; closeDialog(lead); reveal()
+  } catch (err) {
+    leadError("Couldn't send. Check your connection and try again.")
+  } finally { btn.removeAttribute('aria-busy') }
+})
+
+const world = Z.map(mapEl, { onPick: open, onRequest: openRequest })
+// After the form: the gradient fades, the map's dot sweep replays, then the header and footer rise in
+const reveal = () => {
+  document.body.classList.replace('is-gated', 'is-reveal'); world.intro()
+  setTimeout(() => document.body.classList.remove('is-reveal'), 2100)
+}
 $('open').addEventListener('click', open)
+if (!Z.unlocked) open()
 $('close').addEventListener('click', close)
 addEventListener('keydown', e => { if (e.key === 'Escape' && !req.open && sheet.classList.contains('is-open')) close() })
 addEventListener('resize', () => sheet.classList.contains('is-open') && lift())
