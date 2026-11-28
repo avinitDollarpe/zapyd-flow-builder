@@ -117,7 +117,7 @@ Z.view = () => {
   // Payout: the rate you get at the chosen volume tier, the volume fee taken off
   const m = Z.cur(), meth = Z.curMeth(), [bps] = Z.PAYOUT.tiers[s.ptier], k = 1 - bps / 1e4
   return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid * k, change: Z.change(meth),
-    name: meth.name, model: `Xe − ${Z.PAYOUT.markup + bps} bps`, modelClass: 'model', speed: meth.speed,
+    name: meth.name, model: `Xe − ${bps} bps`, modelClass: 'model', speed: meth.speed,
     fee: Z.PAYOUT.fee, series: r => { const x = Z.series(meth, r); return { t: x.t, v: x.v.map(v => v * k) } } }
 }
 
