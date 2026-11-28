@@ -113,10 +113,11 @@ Z.view = () => {
     return { flow: 'payin', key: a.key, m: Z.BY.US, base: 'USD', quote: s.asset, dp: 4, rate: a.mid * k, change: Z.change(a),
       name: `${tier?.[1] ?? '–'} a month`, model: `1:1 less ${s.tier} bps`, modelClass: 'model', series: r => { const x = Z.series(a, r); return { t: x.t, v: x.v.map(v => v * k) } } }
   }
-  // Payout: the rate is the same at every volume; fees are charged on top
-  const m = Z.cur(), meth = Z.curMeth()
-  return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid, change: Z.change(meth),
-    name: meth.name, model: `Xe − ${Z.PAYOUT.markup} bps`, modelClass: 'model', speed: meth.speed, series: r => Z.series(meth, r) }
+  // Payout: the FX rate is fixed at Xe less the spread (the API's live rate). The volume fee comes off on top, giving
+  // the effective rate. ponytail: the API rate is taken as Xe − spread; use the API's Xe once it serves one
+  const m = Z.cur(), meth = Z.curMeth(), [bps] = Z.PAYOUT.tiers[s.ptier], sp = Z.PAYOUT.markup
+  return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid, eff: meth.mid * (1 - bps / 1e4), bps,
+    change: Z.change(meth), name: meth.name, model: `Fixed at Xe − ${sp} bps`, modelClass: 'model', speed: meth.speed, series: r => Z.series(meth, r) }
 }
 
 // ── Format ──
@@ -564,45 +565,51 @@ Z.chart = (el, { height = 215, stats = null, label = true } = {}) => {
 Z.rateCheck = (el, { controls = true, list = true } = {}) => {
   el.classList.add('rc')
   el.innerHTML = (controls ? '<div class="rc__controls"></div>' : '') +
-    `<div class="rc__rate"><span class="rc__pre"></span><div class="rc__row"><b class="rc__big num sk"></b><span class="rc__cur"></span>
+    `<div class="rc__rate"><div class="rc__head"><span class="rc__pre"></span><span class="rc__chg sk"></span></div><div class="rc__row"><b class="rc__big num sk"></b><span class="rc__cur"></span>
       <button class="rc__swap" type="button" aria-pressed="false" aria-label="Show the inverse rate">${Z.icon.swap}</button></div>
-      <div class="rc__meta"></div></div><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
+      <div class="rc__meta"></div></div>
+      <div class="rc__tiers"><span class="label" id="rcVol">Fees by monthly volume</span><div class="rc__seg" role="radiogroup" aria-labelledby="rcVol">${Z.PAYOUT.tiers.map(([, n], i) =>
+        `<button type="button" role="radio" data-t="${i}">${n}</button>`).join('')}</div></div><dl class="rc__facts"></dl><div class="rc__foot"></div><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
   if (controls) Z.filters(el.querySelector('.rc__controls'))
   const $ = s => el.querySelector(s)
   let invert = false
   const draw = () => {
     const v = Z.view(), r = invert ? 1 / v.rate : v.rate, from = invert ? v.quote : v.base, to = invert ? v.base : v.quote, pay = v.flow === 'payout'
-    $('.rc__pre').textContent = `1 ${from} =`
+    $('.rc__pre').textContent = `${pay ? 'FX rate · ' : ''}1 ${from} =`
+    $('.rc__chg').innerHTML = `${Z.delta(v.change)} <span class="muted">24h</span>`
     $('.rc__big').textContent = invert ? Z.sig(r) : Z.fmt(r, v.dp); $('.rc__cur').textContent = to
-    const limit = !v.meth?.limit || v.meth.limit === '-' ? 'No limit' : `Up to ${v.meth.limit}`
-    $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span>` + (pay
-      ? `<span class="${v.modelClass}">${v.model}</span><span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
-      : `<span class="${v.modelClass}">${v.model}</span>`)
-    // Payout: two fees on top of the rate, under a volume dropdown that sets the transaction fee. Built once so the
-    // dropdown survives the per-minute redraw; only the values change
+    // No limit from the API (IDR and BDT are not on it yet): the limit is agreed at onboarding
+    const limit = /^[-–]?$/.test(v.meth?.limit ?? '') ? '*Limit set at onboarding' : `Up to ${v.meth.limit} per transfer`
+    $('.rc__meta').innerHTML = `<span class="${v.modelClass}">${v.model}</span>`
+    // Payout: the volume picker sets the fee, then the fee, the effective rate and the payout fee; speed and limit close
+    $('.rc__foot').hidden = !pay
+    if (pay) $('.rc__foot').innerHTML = `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit}</span>`
+    $('.rc__tiers').hidden = !pay
+    el.querySelectorAll('.rc__seg [data-t]').forEach(b => { const on = +b.dataset.t === Z.state.ptier; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1 })
     const facts = $('.rc__facts')
     if (pay) {
-      if (!facts.classList.contains('rc__calc')) {
-        facts.className = 'rc__facts rc__calc'
-        facts.innerHTML = `<div class="rc__vol"><dt id="rcVol">Monthly volume</dt><dd><select class="select" aria-labelledby="rcVol">${Z.PAYOUT.tiers.map(([, n], i) =>
-            `<option value="${i}">${n}</option>`).join('')}</select></dd></div>
-          <div><dt>Payout fee</dt><dd><span class="num">+${Z.PAYOUT.fee}</span> <span class="muted">per transfer</span></dd></div>
-          <div><dt>Transaction fee</dt><dd class="num rc__txn"></dd></div>`
-      }
-      facts.querySelector('select').value = Z.state.ptier
-      $('.rc__txn').textContent = `+${Z.PAYOUT.tiers[Z.state.ptier][0]} bps`
+      facts.className = 'rc__facts rc__calc'
+      facts.innerHTML = [['Volume fee', `${v.bps} bps`],
+        ['Effective rate', `<span class="muted">Xe − ${Z.PAYOUT.markup + v.bps} bps</span><b class="sk">${Z.fmt(v.eff, v.dp)}</b>`],
+        ['Payout fee', `${Z.PAYOUT.fee} per transfer`]].map(([k, x]) => `<div><dt>${k}</dt><dd class="num">${x}</dd></div>`).join('')
     } else {
       facts.className = 'rc__facts'
       facts.innerHTML = [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]].map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
     }
-    $('.rc__note').textContent = 'Indicative and refreshed every minute. Your rate locks when you create a quotation.'
+    $('.rc__note').textContent = 'Indicative. Your rate locks at quotation.'
     if (list) $('.rc__list').innerHTML = v.flow === 'payin'
       ? `<div class="label">Deposit fee per transaction</div>${Z.DEPOSITS.map(([n, f]) => `<div class="rc__item"><span>${n}</span><b class="num">${f}</b></div>`).join('')}`
       : `<div class="label">Every method in ${v.m.name}</div>${v.m.methods.map((x, i) => `<button class="rc__item" data-i="${i}" aria-current="${i === Z.state.meth}"><span>${x.name}</span><span class="muted">${x.speed}</span><b class="num sk">${Z.fmt(x.mid, x.dp)}</b></button>`).join('')}`
   }
   $('.rc__swap').addEventListener('click', e => { invert = !invert; e.currentTarget.setAttribute('aria-pressed', invert); draw() })
   el.addEventListener('click', e => { const b = e.target.closest('.rc__item[data-i]'); if (b) Z.setMeth(+b.dataset.i) })
-  el.addEventListener('change', e => { if (e.target.matches('.rc__calc select')) Z.setPTier(+e.target.value) })
+  el.addEventListener('click', e => { const t = e.target.closest('.rc__seg [data-t]'); if (t) Z.setPTier(+t.dataset.t) })
+  // Arrow keys move between tiers, as in any radio group
+  el.addEventListener('keydown', e => {
+    if (!e.target.closest('.rc__seg') || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+    e.preventDefault(); const n = Z.PAYOUT.tiers.length, d = ['ArrowLeft', 'ArrowUp'].includes(e.key) ? -1 : 1
+    Z.setPTier((Z.state.ptier + d + n) % n); $('.rc__seg [aria-checked="true"]').focus()
+  })
   const rate = $('.rc__rate')
   Z.sub((t, d) => {
     if (['flow', 'select', 'meth', 'asset'].includes(t)) { draw(); rate.classList.remove('value-swap'); void rate.offsetWidth; rate.classList.add('value-swap') }
