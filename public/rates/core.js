@@ -117,7 +117,7 @@ Z.view = () => {
   // Payout: the rate you get at the chosen volume tier, the volume fee taken off
   const m = Z.cur(), meth = Z.curMeth(), [bps] = Z.PAYOUT.tiers[s.ptier], k = 1 - bps / 1e4
   return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid * k, change: Z.change(meth),
-    name: meth.name, model: `Xe − ${Z.PAYOUT.markup} bps · ${bps} bps fee`, modelClass: 'model', speed: meth.speed,
+    name: meth.name, model: `Xe − ${Z.PAYOUT.markup + bps} bps`, modelClass: 'model', speed: meth.speed,
     fee: Z.PAYOUT.fee, series: r => { const x = Z.series(meth, r); return { t: x.t, v: x.v.map(v => v * k) } } }
 }
 
@@ -574,7 +574,7 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
     $('.rc__big').textContent = invert ? Z.sig(r) : Z.fmt(r, v.dp); $('.rc__cur').textContent = to
     const limit = !v.meth?.limit || v.meth.limit === '-' ? 'No limit' : `Up to ${v.meth.limit}`
     $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span>` + (pay
-      ? `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
+      ? `<span class="${v.modelClass}">${v.model}</span><span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
       : `<span class="${v.modelClass}">${v.model}</span>`)
     // Payout: one control for the volume tier, then the fees: a fixed fee per transfer and the tier's volume fee
     const T = Z.PAYOUT.tiers, [bps] = T[Z.state.ptier] ?? T[0]
