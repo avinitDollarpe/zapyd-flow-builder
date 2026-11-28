@@ -35,7 +35,7 @@ Z.FILTERS = [
 Z.RANGES = { '24H': 864e5, '7D': 6048e5, '30D': 2592e6 }   // span in ms
 Z.REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches
 
-Z.state = { flow: 'payout', sel: 'IN', meth: 0, ptier: 0, tier: 10, asset: 'USDC', range: '30D', hover: null, filter: 'all', status: 'loading', updated: 0 }
+Z.state = { flow: 'payout', sel: 'IN', meth: 0, ptier: 3, tier: 10, asset: 'USDC', range: '30D', hover: null, filter: 'all', status: 'loading', updated: 0 }
 const subs = []
 Z.sub = f => subs.push(f)
 Z.pub = (type, data = {}) => subs.forEach(f => f(type, data))
@@ -564,7 +564,8 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
   el.innerHTML = (controls ? '<div class="rc__controls"></div>' : '') +
     `<div class="rc__rate"><span class="rc__pre"></span><div class="rc__row"><b class="rc__big num sk"></b><span class="rc__cur"></span>
       <button class="rc__swap" type="button" aria-pressed="false" aria-label="Show the inverse rate">${Z.icon.swap}</button></div>
-      <div class="rc__meta"></div></div><div class="rc__tiers"></div><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
+      <div class="rc__meta"></div></div><label class="rc__tiers"><span class="label">Monthly volume</span>
+      <select class="select num">${Z.PAYOUT.tiers.map(([b, n], i) => `<option value="${i}">${n} · ${b} bps</option>`).join('')}</select></label><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
   if (controls) Z.filters(el.querySelector('.rc__controls'))
   const $ = s => el.querySelector(s)
   let invert = false
@@ -576,14 +577,11 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
     $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span>` + (pay
       ? `<span class="${v.modelClass}">${v.model}</span><span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
       : `<span class="${v.modelClass}">${v.model}</span>`)
-    // Payout: one control for the volume tier, then the fees: a fixed fee per transfer and the tier's volume fee
-    const T = Z.PAYOUT.tiers, [bps] = T[Z.state.ptier] ?? T[0]
-    $('.rc__tiers').hidden = !pay
-    if (pay) $('.rc__tiers').innerHTML = `<span class="label" id="rcTierLabel">Monthly volume</span>
-      <div class="rc__seg" role="radiogroup" aria-labelledby="rcTierLabel">${T.map(([b, n], i) =>
-        `<button type="button" role="radio" aria-checked="${i === Z.state.ptier}" data-t="${i}"><span>${n}</span><b class="num">${b} bps</b></button>`).join('')}</div>`
+    // Payout: the volume tier picker, then the fees: a fixed payout fee and the tier's transaction fee
+    const [bps] = Z.PAYOUT.tiers[Z.state.ptier]
+    $('.rc__tiers').hidden = !pay; $('.rc__tiers select').value = Z.state.ptier
     const rows = pay
-      ? [['Transaction fee', `<span class="num">${v.fee}</span> <span class="muted">per transfer</span>`], ['Volume fee', `<span class="num">${bps} bps</span>`]]
+      ? [['Payout fee', `<span class="num">${v.fee}</span> <span class="muted">per transfer</span>`], ['Transaction fee', `<span class="num">${bps} bps</span>`]]
       : [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]]
     const facts = $('.rc__facts'); facts.className = pay ? 'rc__facts rc__calc' : 'rc__facts'
     facts.innerHTML = rows.map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
@@ -593,20 +591,12 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
       : `<div class="label">Every method in ${v.m.name}</div>${v.m.methods.map((x, i) => `<button class="rc__item" data-i="${i}" aria-current="${i === Z.state.meth}"><span>${x.name}</span><span class="muted">${x.speed}</span><b class="num sk">${Z.fmt(x.mid, x.dp)}</b></button>`).join('')}`
   }
   $('.rc__swap').addEventListener('click', e => { invert = !invert; e.currentTarget.setAttribute('aria-pressed', invert); draw() })
-  el.addEventListener('click', e => {
-    const b = e.target.closest('.rc__item[data-i]'); if (b) Z.setMeth(+b.dataset.i)
-    const t = e.target.closest('[data-t]'); if (t) Z.setPTier(+t.dataset.t)
-  })
-  // Arrow keys move between tiers, as in any radio group
-  el.addEventListener('keydown', e => {
-    if (!e.target.closest('.rc__seg') || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
-    e.preventDefault(); const n = Z.PAYOUT.tiers.length, d = ['ArrowLeft', 'ArrowUp'].includes(e.key) ? -1 : 1
-    Z.setPTier((Z.state.ptier + d + n) % n); $('.rc__seg [aria-checked="true"]')?.focus()
-  })
+  el.addEventListener('click', e => { const b = e.target.closest('.rc__item[data-i]'); if (b) Z.setMeth(+b.dataset.i) })
+  $('.rc__tiers select').addEventListener('change', e => Z.setPTier(+e.target.value))
   const rate = $('.rc__rate')
   Z.sub((t, d) => {
     if (['flow', 'select', 'meth', 'asset'].includes(t)) { draw(); rate.classList.remove('value-swap'); void rate.offsetWidth; rate.classList.add('value-swap') }
-    if (t === 'tier') draw()   // instant: the picker is clicked often
+    if (t === 'tier') draw()   // instant: no fade on a tier change
     if (t === 'tick' && d.key === Z.view().key) draw()
   })
   draw()
