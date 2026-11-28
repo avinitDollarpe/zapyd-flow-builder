@@ -113,10 +113,13 @@ Z.view = () => {
     return { flow: 'payin', key: a.key, m: Z.BY.US, base: 'USD', quote: s.asset, dp: 4, rate: a.mid * k, change: Z.change(a),
       name: `${tier?.[1] ?? '–'} a month`, model: `1:1 less ${s.tier} bps`, modelClass: 'model', series: r => { const x = Z.series(a, r); return { t: x.t, v: x.v.map(v => v * k) } } }
   }
-  // Payout: the rate is the same at every volume; fees are charged on top
-  const m = Z.cur(), meth = Z.curMeth()
-  return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid, change: Z.change(meth),
-    name: meth.name, model: `Xe − ${Z.PAYOUT.markup} bps`, modelClass: 'model', speed: meth.speed, series: r => Z.series(meth, r) }
+  // Payout: your rate is Xe less the FX spread and the volume fee. The API's live rate is taken as Xe less the spread
+  // ponytail: Xe is backed out of the API rate; read it from the API once it serves Xe itself
+  const m = Z.cur(), meth = Z.curMeth(), [bps] = Z.PAYOUT.tiers[s.ptier], sp = Z.PAYOUT.markup
+  const xe = meth.mid / (1 - sp / 1e4), k = (1 - (sp + bps) / 1e4) / (1 - sp / 1e4)
+  return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid * k, xe, bps, change: Z.change(meth),
+    name: meth.name, model: `Xe − ${sp + bps} bps`, modelClass: 'model', speed: meth.speed,
+    series: r => { const x = Z.series(meth, r); return { t: x.t, v: x.v.map(v => v * k) } } }
 }
 
 // ── Format ──
@@ -566,7 +569,9 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
   el.innerHTML = (controls ? '<div class="rc__controls"></div>' : '') +
     `<div class="rc__rate"><span class="rc__pre"></span><div class="rc__row"><b class="rc__big num sk"></b><span class="rc__cur"></span>
       <button class="rc__swap" type="button" aria-pressed="false" aria-label="Show the inverse rate">${Z.icon.swap}</button></div>
-      <div class="rc__meta"></div></div><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
+      <div class="rc__meta"></div></div>
+      <div class="rc__tiers"><span class="label" id="rcVol">Monthly volume</span><div class="rc__seg" role="radiogroup" aria-labelledby="rcVol">${Z.PAYOUT.tiers.map(([, n], i) =>
+        `<button type="button" role="radio" data-t="${i}">${n}</button>`).join('')}</div></div><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
   if (controls) Z.filters(el.querySelector('.rc__controls'))
   const $ = s => el.querySelector(s)
   let invert = false
@@ -578,19 +583,15 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
     $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span>` + (pay
       ? `<span class="${v.modelClass}">${v.model}</span><span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
       : `<span class="${v.modelClass}">${v.model}</span>`)
-    // Payout: two fees on top of the rate, under a volume dropdown that sets the transaction fee. Built once so the
-    // dropdown survives the per-minute redraw; only the values change
+    // Payout: the volume picker, then how your rate is built from Xe, then the fee charged per transfer
+    $('.rc__tiers').hidden = !pay
+    el.querySelectorAll('.rc__seg [data-t]').forEach(b => { const on = +b.dataset.t === Z.state.ptier; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1 })
     const facts = $('.rc__facts')
     if (pay) {
-      if (!facts.classList.contains('rc__calc')) {
-        facts.className = 'rc__facts rc__calc'
-        facts.innerHTML = `<div class="rc__vol"><dt id="rcVol">Monthly volume</dt><dd><select class="select" aria-labelledby="rcVol">${Z.PAYOUT.tiers.map(([, n], i) =>
-            `<option value="${i}">${n}</option>`).join('')}</select></dd></div>
-          <div><dt>Payout fee</dt><dd><span class="num">+${Z.PAYOUT.fee}</span> <span class="muted">per transfer</span></dd></div>
-          <div><dt>Transaction fee</dt><dd class="num rc__txn"></dd></div>`
-      }
-      facts.querySelector('select').value = Z.state.ptier
-      $('.rc__txn').textContent = `+${Z.PAYOUT.tiers[Z.state.ptier][0]} bps`
+      facts.className = 'rc__facts rc__calc'
+      facts.innerHTML = [['Xe rate', `<span class="sk">${Z.fmt(v.xe, v.dp)}</span>`], ['FX spread', `− ${Z.PAYOUT.markup} bps`], ['Volume fee', `− ${v.bps} bps`],
+        ['Your rate', `<span class="sk">${Z.fmt(v.rate, v.dp)}</span>`, 'rc__total'], ['Payout fee', `${Z.PAYOUT.fee} <span class="muted">per transfer</span>`, 'rc__after']]
+        .map(([k, x, c = '']) => `<div class="${c}"><dt>${k}</dt><dd class="num">${x}</dd></div>`).join('')
     } else {
       facts.className = 'rc__facts'
       facts.innerHTML = [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]].map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
@@ -602,7 +603,13 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
   }
   $('.rc__swap').addEventListener('click', e => { invert = !invert; e.currentTarget.setAttribute('aria-pressed', invert); draw() })
   el.addEventListener('click', e => { const b = e.target.closest('.rc__item[data-i]'); if (b) Z.setMeth(+b.dataset.i) })
-  el.addEventListener('change', e => { if (e.target.matches('.rc__calc select')) Z.setPTier(+e.target.value) })
+  el.addEventListener('click', e => { const t = e.target.closest('.rc__seg [data-t]'); if (t) Z.setPTier(+t.dataset.t) })
+  // Arrow keys move between tiers, as in any radio group
+  el.addEventListener('keydown', e => {
+    if (!e.target.closest('.rc__seg') || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+    e.preventDefault(); const n = Z.PAYOUT.tiers.length, d = ['ArrowLeft', 'ArrowUp'].includes(e.key) ? -1 : 1
+    Z.setPTier((Z.state.ptier + d + n) % n); $('.rc__seg [aria-checked="true"]').focus()
+  })
   const rate = $('.rc__rate')
   Z.sub((t, d) => {
     if (['flow', 'select', 'meth', 'asset'].includes(t)) { draw(); rate.classList.remove('value-swap'); void rate.offsetWidth; rate.classList.add('value-swap') }
