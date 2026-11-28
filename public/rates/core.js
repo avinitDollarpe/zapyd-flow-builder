@@ -68,7 +68,8 @@ const load = async (range, cur = '') => {
     fetched.add(m.key + range)
     // VND comes with 6 decimals (25808.166000): cut to 2, no rounding. Every other currency shows the API's decimals
     const cut = s => g.fiat === 'VND' ? s.replace(/(\.\d{2})\d+$/, '$1') : s
-    const methods = g.methods.map((x, i) => {
+    // India pays out by bank (RDA) only, though the API also lists the stablecoin methods
+    const methods = g.methods.filter(x => g.fiat !== 'INR' || x.method === 'Bank (RDA)').map((x, i) => {
       const key = m.key + i
       const pts = x.points.map(([t, r]) => [t, cut(r)]), last = pts.at(-1)
       if (pts.length) hist[key + range] = { t: pts.map(p => p[0]), v: pts.map(p => +p[1]) }
@@ -575,16 +576,19 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
     $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span>` + (pay
       ? `<span class="${v.modelClass}">${v.model}</span><span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
       : `<span class="${v.modelClass}">${v.model}</span>`)
-    // Payout: two fees on top of the rate. The volume dropdown lives in the transaction fee row, so the row is built once
+    // Payout: two fees on top of the rate, under a volume dropdown that sets the transaction fee. Built once so the
+    // dropdown survives the per-minute redraw; only the values change
     const facts = $('.rc__facts')
     if (pay) {
       if (!facts.classList.contains('rc__calc')) {
         facts.className = 'rc__facts rc__calc'
-        facts.innerHTML = `<div><dt>Payout fee</dt><dd><span class="num">+${Z.PAYOUT.fee}</span> <span class="muted">per transfer</span></dd></div>
-          <div><dt>Transaction fee<small>By monthly volume</small></dt><dd><select class="select num" aria-label="Transaction fee by monthly volume">${Z.PAYOUT.tiers.map(([b, n], i) =>
-            `<option value="${i}">+${b} bps · ${n}</option>`).join('')}</select></dd></div>`
+        facts.innerHTML = `<div class="rc__vol"><dt id="rcVol">Monthly volume</dt><dd><select class="select" aria-labelledby="rcVol">${Z.PAYOUT.tiers.map(([, n], i) =>
+            `<option value="${i}">${n}</option>`).join('')}</select></dd></div>
+          <div><dt>Payout fee</dt><dd><span class="num">+${Z.PAYOUT.fee}</span> <span class="muted">per transfer</span></dd></div>
+          <div><dt>Transaction fee</dt><dd class="num rc__txn"></dd></div>`
       }
       facts.querySelector('select').value = Z.state.ptier
+      $('.rc__txn').textContent = `+${Z.PAYOUT.tiers[Z.state.ptier][0]} bps`
     } else {
       facts.className = 'rc__facts'
       facts.innerHTML = [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]].map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
