@@ -28,8 +28,6 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 .panel .rc { gap: 14px; }
 .panel .rc__big { font-size: 40px; }
 .panel .rc__swap { background: var(--surface); box-shadow: var(--shadow-border); }
-.panel__method { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--hair); }
-.panel__method .label { font-size: 10.5px; }
 .hist { display: grid; align-content: start; gap: 12px; min-width: 0; }
 .hist__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
 .hist__title { font-size: 13px; font-weight: 600; white-space: nowrap; }
@@ -242,7 +240,6 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
   <div class="sheet__body">
     <section class="panel" aria-label="Today's rate">
       <div id="rate"></div>
-      <div class="panel__method"><span class="label" id="methodLabel">Method</span><div id="method"></div></div>
     </section>
     <section class="hist" aria-label="Price history">
       <div class="hist__head"><span class="hist__title">Zapyd price history</span><div id="range"></div></div>
@@ -377,7 +374,7 @@ const lift = () => {
 }
 const showSheet = () => {
   if (!sheet.classList.contains('is-open')) opener = document.activeElement
-  chart ??= Z.chart($('chart'), { height: 228, label: false, stats: $('stats') })   // first open: the chart intro plays in view
+  chart ??= Z.chart($('chart'), { height: 240, label: false, stats: $('stats') })   // first open: the chart intro plays in view
   sheet.classList.add('is-open'); document.body.classList.add('is-sheet'); lift()
   setTimeout(() => $('close').focus(), 50)
 }
@@ -616,11 +613,10 @@ if (!Z.unlocked) open()
 $('close').addEventListener('click', close)
 addEventListener('keydown', e => { if (e.key === 'Escape' && !req.open && sheet.classList.contains('is-open')) close() })
 addEventListener('resize', () => sheet.classList.contains('is-open') && lift())
-const title = () => { const v = Z.view(); $('methodLabel').textContent = v.flow === 'payin' ? 'Stablecoin and volume' : 'Method'; $('sTitle').innerHTML = `${Z.flag(v.m)}${v.flow === 'payin' ? 'Payin from the USA' : v.m.name}<span class="sheet__cur">${v.flow === 'payin' ? 'USD' : v.m.cur}</span>` }
+const title = () => { const v = Z.view(); $('sTitle').innerHTML = `${Z.flag(v.m)}${v.flow === 'payin' ? 'Payin from the USA' : v.m.name}<span class="sheet__cur">${v.flow === 'payin' ? 'USD' : v.m.cur}</span>` }
 Z.sub(t => { if (['flow', 'select'].includes(t)) { title(); if (sheet.classList.contains('is-open')) lift() } }); title()
 Z.rateCheck($('rate'), { controls: false, list: false })
-Z.filters($('pick'), { flow: true, method: false })
-Z.filters($('method'), { flow: false, method: true })
+Z.filters($('pick'), { flow: true, method: true })   // flow (USA only) and method sit in the header
 Z.filters($('range'), { flow: false, method: false, range: true })
 </script>
 </body>
