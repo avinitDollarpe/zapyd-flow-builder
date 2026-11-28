@@ -22,6 +22,9 @@ Z.REGIONS = ['Asia Pacific', 'Americas', 'Middle East', 'Africa']
 // Payin: USD in the USA, credited in stablecoins at 1:1 less the volume tier. Tiers ([bps, volume]) and deposit fees come from the payin card API
 Z.TIERS = []
 Z.DEPOSITS = []
+// Payout pricing, the same in every currency: the rate is Xe less `markup` bps, a volume fee (bps by monthly payout volume)
+// comes off the amount, and every transaction pays `fee`. Here until the rate card API serves it.
+Z.PAYOUT = { markup: 10, fee: '$2', tiers: [[20, 'Under $2M'], [15, '$2–5M'], [10, '$5–10M'], [5, '$10M+']] }
 Z.ASSETS = { USDC: { key: 'USDC', mid: 1 }, USDT: { key: 'USDT', mid: 1 } }
 // Map filters: what each one lights up
 Z.FILTERS = [
@@ -32,7 +35,7 @@ Z.FILTERS = [
 Z.RANGES = { '24H': 864e5, '7D': 6048e5, '30D': 2592e6 }   // span in ms
 Z.REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches
 
-Z.state = { flow: 'payout', sel: 'IN', meth: 0, tier: 10, asset: 'USDC', range: '30D', hover: null, filter: 'all', status: 'loading', updated: 0 }
+Z.state = { flow: 'payout', sel: 'IN', meth: 0, ptier: 0, tier: 10, asset: 'USDC', range: '30D', hover: null, filter: 'all', status: 'loading', updated: 0 }
 const subs = []
 Z.sub = f => subs.push(f)
 Z.pub = (type, data = {}) => subs.forEach(f => f(type, data))
@@ -42,6 +45,7 @@ Z.select = k => { if (!Z.BY[k]) return; history.replaceState(null, '', location.
 Z.setFlow = f => { if (f === Z.state.flow) return; if (f === 'payout' && !Z.cur().payout) Z.select('IN'); set('flow', { flow: f }) }
 Z.setMeth = i => set('meth', { meth: i })
 Z.setTier = b => set('tier', { tier: b })
+Z.setPTier = i => set('tier', { ptier: i })   // payout volume tier (index into Z.PAYOUT.tiers); same event as payin's tier
 Z.setAsset = a => set('asset', { asset: a })
 Z.setRange = r => set('range', { range: r })
 Z.setFilter = f => f !== Z.state.filter && set('filter', { filter: f })
@@ -110,10 +114,11 @@ Z.view = () => {
     return { flow: 'payin', key: a.key, m: Z.BY.US, base: 'USD', quote: s.asset, dp: 4, rate: a.mid * k, change: Z.change(a),
       name: `${tier?.[1] ?? '–'} a month`, model: `1:1 less ${s.tier} bps`, modelClass: 'model', series: r => { const x = Z.series(a, r); return { t: x.t, v: x.v.map(v => v * k) } } }
   }
-  const m = Z.cur(), meth = Z.curMeth()
-  return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid, change: Z.change(meth),
-    name: meth.name, model: meth.rate, modelClass: meth.rate === 'Live rate' ? 'model is-live' : 'model', speed: meth.speed,
-    fee: meth.fee === '-' ? 'None' : meth.fee, series: r => Z.series(meth, r) }
+  // Payout: the rate you get at the chosen volume tier, the volume fee taken off
+  const m = Z.cur(), meth = Z.curMeth(), [bps] = Z.PAYOUT.tiers[s.ptier], k = 1 - bps / 1e4
+  return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid * k, change: Z.change(meth),
+    name: meth.name, model: `Xe − ${Z.PAYOUT.markup} bps · ${bps} bps fee`, modelClass: 'model', speed: meth.speed,
+    fee: Z.PAYOUT.fee, series: r => { const x = Z.series(meth, r); return { t: x.t, v: x.v.map(v => v * k) } } }
 }
 
 // ── Format ──
@@ -542,7 +547,8 @@ Z.chart = (el, { height = 215, stats = null, label = true } = {}) => {
   new ResizeObserver(() => { if (started && box.clientWidth !== w0) { w0 = box.clientWidth; const keep = t0; build(false); t0 = keep } }).observe(box)
   Z.sub((t, d) => {
     if (!started) return
-    if (['flow', 'select', 'meth', 'asset', 'tier', 'range'].includes(t)) { build(false); swap(box, true) }
+    if (['flow', 'select', 'meth', 'asset', 'range'].includes(t)) { build(false); swap(box, true) }
+    if (t === 'tier') build(false)   // a tier is a frequent, tiny change: redraw in place, no fade
     if (t === 'tick' && d.key === Z.view().key && performance.now() - t0 > INTRO) build(false)   // never cut an intro short
     if (t === 'theme') { readColors(); raf = 0; kick() }
     if (t === 'replay' || (t === 'status' && d.from === 'loading')) build(true)
@@ -552,37 +558,55 @@ Z.chart = (el, { height = 215, stats = null, label = true } = {}) => {
   return { kick }
 }
 
-// ── Component: rate checker (today's rate, no amount) ──
+// ── Component: rate checker. Payout reads as a receipt: today's rate at the chosen monthly volume, then how it's built
 Z.rateCheck = (el, { controls = true, list = true } = {}) => {
   el.classList.add('rc')
   el.innerHTML = (controls ? '<div class="rc__controls"></div>' : '') +
     `<div class="rc__rate"><span class="rc__pre"></span><div class="rc__row"><b class="rc__big num sk"></b><span class="rc__cur"></span>
       <button class="rc__swap" type="button" aria-pressed="false" aria-label="Show the inverse rate">${Z.icon.swap}</button></div>
-      <div class="rc__meta"></div></div><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
+      <div class="rc__meta"></div></div><div class="rc__tiers"></div><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
   if (controls) Z.filters(el.querySelector('.rc__controls'))
   const $ = s => el.querySelector(s)
   let invert = false
   const draw = () => {
-    const v = Z.view(), r = invert ? 1 / v.rate : v.rate, from = invert ? v.quote : v.base, to = invert ? v.base : v.quote
+    const v = Z.view(), r = invert ? 1 / v.rate : v.rate, from = invert ? v.quote : v.base, to = invert ? v.base : v.quote, pay = v.flow === 'payout'
     $('.rc__pre').textContent = `1 ${from} =`
-    const big = $('.rc__big'); big.textContent = invert ? Z.sig(r) : Z.fmt(r, v.dp); $('.rc__cur').textContent = to
-    $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span><span class="${v.modelClass}">${v.model}${v.flow === 'payout' ? '*' : ''}</span>`
-    const facts = v.flow === 'payin'
-      ? [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]]
-      : [['Speed', `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span>`], ['Fixed fee', v.fee], ['Per transfer', v.meth.limit ?? 'No limit']]
-    // Payout shows the standard rate (*); the fixed fee is always charged. Payin already shows its volume tiers
-    $('.rc__note').textContent = (v.flow === 'payout' ? '*Standard rate. Volume-based pricing is available for higher monthly volumes. ' : '') +
-      'Rates are indicative and refresh every minute. Your rate is locked when you create a quotation.'
-    $('.rc__facts').innerHTML = facts.map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
+    $('.rc__big').textContent = invert ? Z.sig(r) : Z.fmt(r, v.dp); $('.rc__cur').textContent = to
+    const limit = !v.meth?.limit || v.meth.limit === '-' ? 'No limit' : `Up to ${v.meth.limit}`
+    $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span>` + (pay
+      ? `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
+      : `<span class="${v.modelClass}">${v.model}</span>`)
+    // Payout: one control for the volume tier, then the fees: a fixed fee per transfer and the tier's volume fee
+    const T = Z.PAYOUT.tiers, [bps] = T[Z.state.ptier] ?? T[0]
+    $('.rc__tiers').hidden = !pay
+    if (pay) $('.rc__tiers').innerHTML = `<span class="label" id="rcTierLabel">Monthly volume</span>
+      <div class="rc__seg" role="radiogroup" aria-labelledby="rcTierLabel">${T.map(([b, n], i) =>
+        `<button type="button" role="radio" aria-checked="${i === Z.state.ptier}" data-t="${i}"><span>${n}</span><b class="num">${b} bps</b></button>`).join('')}</div>`
+    const rows = pay
+      ? [['Transaction fee', `<span class="num">${v.fee}</span> <span class="muted">per transfer</span>`], ['Volume fee', `<span class="num">${bps} bps</span>`]]
+      : [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]]
+    const facts = $('.rc__facts'); facts.className = pay ? 'rc__facts rc__calc' : 'rc__facts'
+    facts.innerHTML = rows.map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
+    $('.rc__note').textContent = 'Indicative and refreshed every minute. Your rate locks when you create a quotation.'
     if (list) $('.rc__list').innerHTML = v.flow === 'payin'
       ? `<div class="label">Deposit fee per transaction</div>${Z.DEPOSITS.map(([n, f]) => `<div class="rc__item"><span>${n}</span><b class="num">${f}</b></div>`).join('')}`
       : `<div class="label">Every method in ${v.m.name}</div>${v.m.methods.map((x, i) => `<button class="rc__item" data-i="${i}" aria-current="${i === Z.state.meth}"><span>${x.name}</span><span class="muted">${x.speed}</span><b class="num sk">${Z.fmt(x.mid, x.dp)}</b></button>`).join('')}`
   }
   $('.rc__swap').addEventListener('click', e => { invert = !invert; e.currentTarget.setAttribute('aria-pressed', invert); draw() })
-  el.addEventListener('click', e => { const b = e.target.closest('.rc__item[data-i]'); if (b) Z.setMeth(+b.dataset.i) })
+  el.addEventListener('click', e => {
+    const b = e.target.closest('.rc__item[data-i]'); if (b) Z.setMeth(+b.dataset.i)
+    const t = e.target.closest('[data-t]'); if (t) Z.setPTier(+t.dataset.t)
+  })
+  // Arrow keys move between tiers, as in any radio group
+  el.addEventListener('keydown', e => {
+    if (!e.target.closest('.rc__seg') || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+    e.preventDefault(); const n = Z.PAYOUT.tiers.length, d = ['ArrowLeft', 'ArrowUp'].includes(e.key) ? -1 : 1
+    Z.setPTier((Z.state.ptier + d + n) % n); $('.rc__seg [aria-checked="true"]')?.focus()
+  })
   const rate = $('.rc__rate')
   Z.sub((t, d) => {
-    if (['flow', 'select', 'meth', 'asset', 'tier'].includes(t)) { draw(); rate.classList.remove('value-swap'); void rate.offsetWidth; rate.classList.add('value-swap') }
+    if (['flow', 'select', 'meth', 'asset'].includes(t)) { draw(); rate.classList.remove('value-swap'); void rate.offsetWidth; rate.classList.add('value-swap') }
+    if (t === 'tier') draw()   // instant: the picker is clicked often
     if (t === 'tick' && d.key === Z.view().key) draw()
   })
   draw()
