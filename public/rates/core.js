@@ -578,11 +578,12 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
     $('.rc__pre').textContent = `${pay ? 'FX rate · ' : ''}1 ${from} =`
     $('.rc__chg').innerHTML = `${Z.delta(v.change)} <span class="muted">24h</span>`
     $('.rc__big').textContent = invert ? Z.sig(r) : Z.fmt(r, v.dp); $('.rc__cur').textContent = to
-    const limit = !v.meth?.limit || v.meth.limit === '-' ? 'No limit' : `Up to ${v.meth.limit}`
+    // No limit from the API (IDR and BDT are not on it yet): the limit is agreed at onboarding
+    const limit = /^[-–]?$/.test(v.meth?.limit ?? '') ? '*Limit set at onboarding' : `Up to ${v.meth.limit} per transfer`
     $('.rc__meta').innerHTML = `<span class="${v.modelClass}">${v.model}</span>`
     // Payout: the volume picker sets the fee, then the fee, the effective rate and the payout fee; speed and limit close
     $('.rc__foot').hidden = !pay
-    if (pay) $('.rc__foot').innerHTML = `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
+    if (pay) $('.rc__foot').innerHTML = `<span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit}</span>`
     $('.rc__tiers').hidden = !pay
     el.querySelectorAll('.rc__seg [data-t]').forEach(b => { const on = +b.dataset.t === Z.state.ptier; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1 })
     const facts = $('.rc__facts')
