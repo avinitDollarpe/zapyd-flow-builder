@@ -14,11 +14,9 @@ Z.MARKETS = [
   M('ID', 'Indonesia', 'IDR', 'Asia Pacific', 'id', -2.5, 118),
   // The USA is a payin market only: USD in, stablecoins out
   M('US', 'United States', 'USD', 'Americas', 'us', 39, -98, { payin: true, payout: false }),
-  M('AE', 'UAE', 'AED', 'Middle East', 'ae', 23.9, 54.5),
-  M('NG', 'Nigeria', 'NGN', 'Africa', 'ng', 9, 8),
 ]
 Z.BY = Object.fromEntries(Z.MARKETS.map(m => [m.key, m]))
-Z.REGIONS = ['Asia Pacific', 'Americas', 'Middle East', 'Africa']
+Z.REGIONS = ['Asia Pacific', 'Americas']
 // Payin: USD in the USA, credited in stablecoins at 1:1 less the volume tier. Tiers ([bps, volume]) and deposit fees come from the payin card API
 Z.TIERS = []
 Z.DEPOSITS = []
@@ -205,7 +203,11 @@ const square = (p, x, y, s) => { const X = Math.round(x), Y = Math.round(y); p.r
 const DOTS = window.DOTS
 document.documentElement.style.setProperty('--map-aspect', `${DOTS.w} / ${DOTS.h}`)
 document.documentElement.style.setProperty('--map-ratio', DOTS.w / DOTS.h)
-const KEY = Object.fromEntries([...DOTS.keys].map((c, i) => [c, DOTS.ids[i]]))
+// The dot map also traces markets that are not live (UAE, Nigeria): their dots stay plain land, and their outlines
+// join the other countries, so they read and click as "not live yet"
+const KEY = Object.fromEntries([...DOTS.keys].map((c, i) => [c, Z.BY[DOTS.ids[i]] ? DOTS.ids[i] : null]))
+const REGION = new Intl.DisplayNames(['en'], { type: 'region' })
+for (const k in DOTS.outlines) if (!Z.BY[k]) { DOTS.borders.push({ n: REGION.of(k), c: k.toLowerCase(), r: DOTS.outlines[k] }); delete DOTS.outlines[k] }
 const DOT_LIST = []
 DOTS.rows.forEach((row, y) => [...row].forEach((c, x) => { if (c !== ' ') DOT_LIST.push({ x, y, k: KEY[c] ?? null, delay: delayOf(x / DOTS.w, x, y) }) }))
 const DOT_COUNT = DOT_LIST.reduce((n, d) => (d.k && (n[d.k] = (n[d.k] ?? 0) + 1), n), {})
