@@ -164,6 +164,31 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 @keyframes reveal-fade { from { opacity: 0; } }
 @keyframes reveal-rise { from { opacity: 0; translate: 0 8px; } }
 @media (prefers-reduced-motion: reduce) { .is-reveal .fit__stage, .is-reveal .nav, .is-reveal .fit__foot { animation: none; } }
+/* Rate card form: a narrow card, stacked head, the error under the fields, a full-width button with the note under it */
+#lead { width: min(440px, calc(100vw - 24px)); }
+#lead .req__head { flex-direction: column; gap: 16px; padding: 24px 24px 0; }
+#lead .req__badge { width: 40px; height: 40px; border-radius: 12px; background: var(--blue-25); color: var(--blue); }
+#lead .req__head h2 { font-size: 22px; }
+#lead .req__head p { text-wrap: pretty; }
+#lead .req__body { gap: 16px; padding: 20px 24px 0; }
+#lead .req__row { gap: 12px; }
+#lead .req__error { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 0; font-size: 13px; line-height: 1.45; animation: req-rise 150ms var(--ease-out) both; }
+#lead .req__error[hidden] { display: none; }
+#lead .req__error::before { content: ""; flex: none; width: 16px; height: 16px; margin-top: 1px; background: currentColor; -webkit-mask: var(--alert) center / contain no-repeat; mask: var(--alert) center / contain no-repeat; }
+#lead { --alert: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 8v4.5M12 16h.01'/%3E%3C/svg%3E"); }
+#lead .req__foot { display: grid; justify-items: center; gap: 12px; padding: 20px 24px 20px; border: 0; background: none; }
+#lead .req__foot .btn { width: 100%; height: 40px; }
+#lead .req__note { margin: 0; }
+.req__step { display: grid; gap: 20px; animation: req-rise 200ms var(--ease-out) both; }
+.req__step[hidden], .req__who[hidden], .req__field[hidden] { display: none; }
+.req__who { display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px; border-radius: 12px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--hair); }
+.req__who-ico { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--surface); box-shadow: var(--shadow-border); color: var(--gray-500); }
+.req__who-text { display: grid; min-width: 0; }
+.req__who-text small { font-size: 12px; color: var(--gray-500); }
+.req__who-text b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.req__who-edit { margin-left: auto; flex: none; height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 13px; font-weight: 500; color: var(--blue); cursor: pointer; transition-property: background-color; transition-duration: 150ms; }
+.req__who-edit:hover { background: var(--gray-100); }
+.req__who-edit:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .req__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
 .req__foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 14px 22px; border-top: 1px solid var(--hair); background: var(--surface-2); }
@@ -200,6 +225,8 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
 /* Phones: the modal becomes a bottom sheet and the cards stack */
 @media (max-width: 560px) {
   .req { width: 100%; margin: auto 0 0; border-radius: 20px 20px 0 0; }
+  #lead { width: 100%; }
+  #lead .req__foot { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
   .req[open] { animation-name: req-up; }
   @keyframes req-up { from { translate: 0 24px; opacity: 0; } }
   .req__row, .req__choices { grid-template-columns: 1fr; }
@@ -314,16 +341,21 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
       <div>
         <span class="req__kicker">Rate card</span>
         <h2 id="leadTitle">Explore Zapyd's rates</h2>
-        <p id="leadLede">Tell us who you are to see the countries Zapyd supports, with today's rate, fees and price history for each.</p>
+        <p id="leadLede">Enter your work email to see the countries Zapyd supports, with today's rate, fees and price history for each.</p>
       </div>
     </div>
     <div class="req__body">
-      <div class="req__row">
-        <label class="req__field"><span>Full name</span><input class="input" name="name" autocomplete="name" maxlength="120" placeholder="Asha Rao" required></label>
-        <label class="req__field"><span>Company</span><input class="input" name="company" autocomplete="organization" maxlength="120" placeholder="Acme" required></label>
+      <label class="req__field" id="leadEmailField"><span>Work email</span><input class="input" name="email" type="email" autocomplete="email" maxlength="200" placeholder="asha@acme.com" required></label>
+      <div class="req__who" id="leadWho" hidden>
+        <span class="req__who-ico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+        <span class="req__who-text"><small>Work email</small><b id="leadWhoEmail"></b></span>
+        <button type="button" class="req__who-edit" id="leadChange">Change</button>
       </div>
-      <div class="req__row">
-        <label class="req__field"><span>Work email</span><input class="input" name="email" type="email" autocomplete="email" maxlength="200" placeholder="asha@acme.com" required></label>
+      <div class="req__step" id="leadMore" hidden>
+        <div class="req__row">
+          <label class="req__field"><span>Full name</span><input class="input" name="name" autocomplete="name" maxlength="120" placeholder="Asha Rao" required></label>
+          <label class="req__field"><span>Company</span><input class="input" name="company" autocomplete="organization" maxlength="120" placeholder="Acme" required></label>
+        </div>
         <div class="req__field"><span id="phoneLabel">Phone</span>
           <div class="tel">
             <button type="button" class="tel__cc" id="ccBtn" popovertarget="ccPop" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><img class="flag" id="ccFlag" alt=""><span id="ccDial">+1</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
@@ -336,11 +368,11 @@ html { overflow-x: clip; }   /* the page never scrolls sideways, embedded or not
         </div>
       </div>
       <input class="req__hp" name="fax" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="req__error" id="leadError" role="alert" hidden></p>
     </div>
     <div class="req__foot">
+      <button class="btn btn--primary req__submit" id="leadSubmit"><span id="leadSubmitText">Continue</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
       <p class="req__note" id="leadNote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Used only to contact you about Zapyd</p>
-      <p class="req__error" id="leadError" role="alert" hidden></p>
-      <button class="btn btn--primary req__submit" id="leadSubmit">See rates<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
     </div>
   </form>
 </dialog>
@@ -422,11 +454,11 @@ const DISPOSABLE = new Set(('mailinator guerrillamail sharklasers grr 10minutema
 const COUNTRY_TLD = /^(?:(?:co|com|net|org|ac)\.)?[a-z]{2,3}$/
 const emailProblem = v => {
   const m = v.trim().toLowerCase().match(/^[a-z0-9](?:[a-z0-9._%+'-]{0,62}[a-z0-9])?@((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24})$/)
-  if (!m || v.includes('..')) return 'Enter a valid work email.'
+  if (!m || v.includes('..')) return 'Check the email. It should look like name@company.com.'
   const domain = m[1], [name, ...rest] = domain.split('.')
-  if (/\.(test|example|invalid|localhost|local)$/.test(domain) || /^example\.(com|net|org)$/.test(domain)) return 'Enter a real work email.'
-  if (DISPOSABLE.has(name)) return 'Use your work email, not a temporary inbox.'
-  if (FREE_MAIL.has(domain) || (FREE_MAIL.has(name) && COUNTRY_TLD.test(rest.join('.')))) return 'Use your work email, not a personal one.'
+  if (/\.(test|example|invalid|localhost|local)$/.test(domain) || /^example\.(com|net|org)$/.test(domain)) return 'That address can\'t receive email. Use your company email.'
+  if (DISPOSABLE.has(name)) return `${domain} is a temporary inbox. Use your company email.`
+  if (FREE_MAIL.has(domain) || (FREE_MAIL.has(name) && COUNTRY_TLD.test(rest.join('.')))) return `${domain} is a personal address. Use your company email.`
   return ''
 }
 // A phone number that exists: it matches a mobile or landline pattern of a region with that country code
@@ -446,6 +478,7 @@ const send = async payload => {
   const res = await fetch(REQUEST_URL, { method: 'POST', body: JSON.stringify(payload) })
   const out = await res.json().catch(() => ({}))
   if (!res.ok || out.ok !== true) throw new Error(out.error || `HTTP ${res.status}`)
+  return out
 }
 // ── Website preview: favicon (Google's favicon service) and host, no lookup ──
 const siteUrl = v => {
@@ -492,18 +525,39 @@ form.addEventListener('submit', async e => {
   } finally { btn.removeAttribute('aria-busy') }
 })
 
-// ── Page access: name, company, email and phone before the map and rates, once per browser (stored in the same sheet) ──
+// ── Page access: a work email first. An email already in the sheet sees the rates; a new one adds name, company and phone
+// (stored in the same sheet). Once per browser ──
 // ponytail: a browser flag, not access control; the rates API stays public
 const lead = $('lead'), leadForm = $('leadForm')
-const leadError = msg => { $('leadError').textContent = msg; $('leadError').hidden = !msg; $('leadNote').hidden = !!msg }
+const leadError = msg => { $('leadError').textContent = msg; $('leadError').hidden = !msg }
 leadForm.addEventListener('input', e => e.target.removeAttribute('aria-invalid'))
 let leadAt = 0
 const open = () => {
   if (Z.unlocked) return showSheet()
   leadError(''); leadForm.querySelectorAll('[aria-invalid]').forEach(f => f.removeAttribute('aria-invalid'))
   $('leadFlag').innerHTML = GLOBE
-  leadAt = Date.now(); lead.showModal(); leadForm.elements.name.focus()
+  leadAt = Date.now(); lead.showModal(); setStep(leadStep)
 }
+// Two steps: the email, then (for an email the sheet doesn't have) name, company and phone
+let leadStep = 'email'
+const setStep = step => {
+  leadStep = step
+  const more = step === 'more', f = leadForm.elements
+  $('leadEmailField').hidden = more; $('leadWho').hidden = !more; $('leadMore').hidden = !more
+  $('leadWhoEmail').textContent = f.email.value.trim()
+  $('leadTitle').textContent = more ? 'Tell us about you' : "Explore Zapyd's rates"
+  $('leadLede').textContent = more ? 'First time here. Add your name, company and phone to see the rates.'
+    : "Enter your work email to see the countries Zapyd supports, with today's rate, fees and price history for each."
+  $('leadSubmitText').textContent = more ? 'See rates' : 'Continue'
+  leadError(''); (more ? f.name : f.email).focus()
+}
+$('leadChange').addEventListener('click', () => setStep('email'))
+// True when the sheet already has this email. Any failure (no sheet, an older script) asks for the details instead
+const known = async email => {
+  if (!REQUEST_URL) return false
+  try { return (await send({ kind: 'lookup', email, fax: leadForm.elements.fax.value })).known === true } catch { return false }
+}
+const unlock = () => { try { localStorage.setItem(LEAD_KEY, '1') } catch {} Z.unlocked = true; closeDialog(lead); reveal() }
 // ── Phone country code: every region libphonenumber dials (phone.js, scripts/gen-phone.py), names from the browser (Intl) ──
 const regionName = new Intl.DisplayNames(['en'], { type: 'region' })
 const CC = Object.entries(PHONE).map(([iso, [dial]]) => ({ iso, dial, name: regionName.of(iso.toUpperCase()) }))
@@ -579,11 +633,19 @@ lead.addEventListener('cancel', e => e.preventDefault())   // the form comes fir
 leadForm.addEventListener('submit', async e => {
   e.preventDefault()
   const f = leadForm.elements, missing = [], problems = []
+  const btn = $('leadSubmit')
+  if (leadStep === 'email') {
+    const empty = !f.email.value.trim(), msg = empty ? 'Enter your work email.' : emailProblem(f.email.value)
+    f.email.setAttribute('aria-invalid', !!msg)
+    if (msg) { leadError(msg); f.email.focus(); return }
+    btn.setAttribute('aria-busy', 'true'); leadError('')
+    try { if (await known(f.email.value.trim())) return unlock() } finally { btn.removeAttribute('aria-busy') }
+    return setStep('more')
+  }
   // An empty field is listed; a filled one that fails its check shows that check's message
   for (const [name, label, problem] of [
     ['name', 'your name', () => /\p{L}/u.test(f.name.value) ? '' : 'Enter your name.'],
     ['company', 'your company', () => /[\p{L}\d]/u.test(f.company.value) ? '' : 'Enter your company name.'],
-    ['email', 'a work email', () => emailProblem(f.email.value)],
     ['phone', 'a phone number', () => phoneProblem(cc, f.phone.value)]]) {
     const empty = !f[name].value.trim(), msg = empty ? '' : problem()
     f[name].setAttribute('aria-invalid', empty || !!msg); if (empty) missing.push(label); else if (msg) problems.push(msg)
@@ -592,11 +654,10 @@ leadForm.addEventListener('submit', async e => {
     leadError(missing.length ? `Add ${missing.join(', ').replace(/, ([^,]*)$/, ' and $1')}.` : problems[0])
     leadForm.querySelector('[aria-invalid="true"]').focus(); return
   }
-  const btn = $('leadSubmit'); btn.setAttribute('aria-busy', 'true'); leadError('')
+  btn.setAttribute('aria-busy', 'true'); leadError('')
   try {
     await send({ kind: 'rates', name: f.name.value.trim(), company: f.company.value.trim(), email: f.email.value.trim(), phone: `+${cc.dial} ${f.phone.value.trim()}`, country: Z.cur().name, fax: f.fax.value, elapsed: Date.now() - leadAt })
-    try { localStorage.setItem(LEAD_KEY, '1') } catch {}
-    Z.unlocked = true; closeDialog(lead); reveal()
+    unlock()
   } catch (err) {
     leadError("Couldn't send. Check your connection and try again.")
   } finally { btn.removeAttribute('aria-busy') }
