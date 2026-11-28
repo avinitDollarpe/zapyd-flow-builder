@@ -22,8 +22,8 @@ Z.REGIONS = ['Asia Pacific', 'Americas', 'Middle East', 'Africa']
 // Payin: USD in the USA, credited in stablecoins at 1:1 less the volume tier. Tiers ([bps, volume]) and deposit fees come from the payin card API
 Z.TIERS = []
 Z.DEPOSITS = []
-// Payout pricing, the same in every currency: the rate is Xe less `markup` bps, a volume fee (bps by monthly payout volume)
-// comes off the amount, and every transaction pays `fee`. Here until the rate card API serves it.
+// Payout pricing, the same in every currency: the rate is Xe less `markup` bps. On top, every transfer pays the payout
+// `fee` and a transaction fee in bps set by monthly payout volume. Here until the rate card API serves it.
 Z.PAYOUT = { markup: 10, fee: '$2', tiers: [[20, 'Under $2M'], [15, '$2–5M'], [10, '$5–10M'], [5, '$10M+']] }
 Z.ASSETS = { USDC: { key: 'USDC', mid: 1 }, USDT: { key: 'USDT', mid: 1 } }
 // Map filters: what each one lights up
@@ -114,11 +114,10 @@ Z.view = () => {
     return { flow: 'payin', key: a.key, m: Z.BY.US, base: 'USD', quote: s.asset, dp: 4, rate: a.mid * k, change: Z.change(a),
       name: `${tier?.[1] ?? '–'} a month`, model: `1:1 less ${s.tier} bps`, modelClass: 'model', series: r => { const x = Z.series(a, r); return { t: x.t, v: x.v.map(v => v * k) } } }
   }
-  // Payout: the rate you get at the chosen volume tier, the volume fee taken off
-  const m = Z.cur(), meth = Z.curMeth(), [bps] = Z.PAYOUT.tiers[s.ptier], k = 1 - bps / 1e4
-  return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid * k, change: Z.change(meth),
-    name: meth.name, model: `Xe − ${bps} bps`, modelClass: 'model', speed: meth.speed,
-    fee: Z.PAYOUT.fee, series: r => { const x = Z.series(meth, r); return { t: x.t, v: x.v.map(v => v * k) } } }
+  // Payout: the rate is the same at every volume; fees are charged on top
+  const m = Z.cur(), meth = Z.curMeth()
+  return { flow: 'payout', key: m.key, m, meth, base: 'USDC', quote: m.cur, dp: meth.dp, rate: meth.mid, change: Z.change(meth),
+    name: meth.name, model: `Xe − ${Z.PAYOUT.markup} bps`, modelClass: 'model', speed: meth.speed, series: r => Z.series(meth, r) }
 }
 
 // ── Format ──
@@ -564,8 +563,7 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
   el.innerHTML = (controls ? '<div class="rc__controls"></div>' : '') +
     `<div class="rc__rate"><span class="rc__pre"></span><div class="rc__row"><b class="rc__big num sk"></b><span class="rc__cur"></span>
       <button class="rc__swap" type="button" aria-pressed="false" aria-label="Show the inverse rate">${Z.icon.swap}</button></div>
-      <div class="rc__meta"></div></div><label class="rc__tiers"><span class="label">Monthly volume</span>
-      <select class="select num">${Z.PAYOUT.tiers.map(([b, n], i) => `<option value="${i}">${n} · ${b} bps</option>`).join('')}</select></label><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
+      <div class="rc__meta"></div></div><dl class="rc__facts"></dl><p class="rc__note"></p>${list ? '<div class="rc__list"></div>' : ''}`
   if (controls) Z.filters(el.querySelector('.rc__controls'))
   const $ = s => el.querySelector(s)
   let invert = false
@@ -577,14 +575,20 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
     $('.rc__meta').innerHTML = `<span class="sk">${Z.delta(v.change)} <span class="muted">24h</span></span>` + (pay
       ? `<span class="${v.modelClass}">${v.model}</span><span class="speed${v.speed === 'Instant' ? '' : ' slow'}"><i></i>${v.speed}</span><span class="muted">${limit} per transfer</span>`
       : `<span class="${v.modelClass}">${v.model}</span>`)
-    // Payout: the volume tier picker, then the fees: a fixed payout fee and the tier's transaction fee
-    const [bps] = Z.PAYOUT.tiers[Z.state.ptier]
-    $('.rc__tiers').hidden = !pay; $('.rc__tiers select').value = Z.state.ptier
-    const rows = pay
-      ? [['Payout fee', `<span class="num">${v.fee}</span> <span class="muted">per transfer</span>`], ['Transaction fee', `<span class="num">${bps} bps</span>`]]
-      : [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]]
-    const facts = $('.rc__facts'); facts.className = pay ? 'rc__facts rc__calc' : 'rc__facts'
-    facts.innerHTML = rows.map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
+    // Payout: two fees on top of the rate. The volume dropdown lives in the transaction fee row, so the row is built once
+    const facts = $('.rc__facts')
+    if (pay) {
+      if (!facts.classList.contains('rc__calc')) {
+        facts.className = 'rc__facts rc__calc'
+        facts.innerHTML = `<div><dt>Payout fee</dt><dd><span class="num">+${Z.PAYOUT.fee}</span> <span class="muted">per transfer</span></dd></div>
+          <div><dt>Transaction fee<small>By monthly volume</small></dt><dd><select class="select num" aria-label="Transaction fee by monthly volume">${Z.PAYOUT.tiers.map(([b, n], i) =>
+            `<option value="${i}">+${b} bps · ${n}</option>`).join('')}</select></dd></div>`
+      }
+      facts.querySelector('select').value = Z.state.ptier
+    } else {
+      facts.className = 'rc__facts'
+      facts.innerHTML = [['Monthly volume', v.name.replace(' a month', '')], ['Credited', 'Instant'], ['Asset', v.quote]].map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('')
+    }
     $('.rc__note').textContent = 'Indicative and refreshed every minute. Your rate locks when you create a quotation.'
     if (list) $('.rc__list').innerHTML = v.flow === 'payin'
       ? `<div class="label">Deposit fee per transaction</div>${Z.DEPOSITS.map(([n, f]) => `<div class="rc__item"><span>${n}</span><b class="num">${f}</b></div>`).join('')}`
@@ -592,7 +596,7 @@ Z.rateCheck = (el, { controls = true, list = true } = {}) => {
   }
   $('.rc__swap').addEventListener('click', e => { invert = !invert; e.currentTarget.setAttribute('aria-pressed', invert); draw() })
   el.addEventListener('click', e => { const b = e.target.closest('.rc__item[data-i]'); if (b) Z.setMeth(+b.dataset.i) })
-  $('.rc__tiers select').addEventListener('change', e => Z.setPTier(+e.target.value))
+  el.addEventListener('change', e => { if (e.target.matches('.rc__calc select')) Z.setPTier(+e.target.value) })
   const rate = $('.rc__rate')
   Z.sub((t, d) => {
     if (['flow', 'select', 'meth', 'asset'].includes(t)) { draw(); rate.classList.remove('value-swap'); void rate.offsetWidth; rate.classList.add('value-swap') }

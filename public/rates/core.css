@@ -195,15 +195,15 @@ p { margin: 0; text-wrap: pretty; }
 .rc__facts dt { font-size: 11.5px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rc__facts dd { margin: 4px 0 0; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rc__facts .speed { font-size: 13.5px; font-weight: 500; }
-/* Payout receipt: the monthly volume dropdown, then the fees as plain rows */
-.rc__tiers { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.rc__tiers[hidden] { display: none; }
-.rc__tiers .select { height: 36px; min-width: 0; font-size: 13px; font-weight: 500; }
-.rc__calc { display: grid; grid-template-columns: none; background: none; box-shadow: none; border-radius: 0; }
-.rc__calc > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; }
-.rc__calc > div + div { border-left: 0; border-top: 1px dashed var(--hair); }
-.rc__calc dt { font-size: 13px; }
-.rc__calc dd { margin: 0; font-size: 13px; }
+/* Payout fees: one card of rows on top of the rate; the transaction fee row carries the volume dropdown */
+.rc__calc { grid-template-columns: none; padding: 0 14px; }
+.rc__calc > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 50px; padding: 8px 0; }
+.rc__calc > div + div { border-left: 0; border-top: 1px solid var(--hair); }
+.rc__calc dt { display: grid; gap: 2px; font-size: 13px; color: var(--gray-700); }
+.rc__calc dt small { font-size: 11.5px; color: var(--gray-500); }
+.rc__calc dd { margin: 0; font-size: 13px; overflow: visible; }
+.rc__calc .select { height: 34px; font-size: 13px; font-weight: 600; }
+.select:hover:not(:focus) { box-shadow: inset 0 0 0 1px var(--gray-400); }
 .rc__list { display: grid; gap: 2px; }
 .rc__list .label { margin-bottom: 6px; }
 .rc__item { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; text-align: left; font-size: 13px; transition-property: background-color; transition-duration: 100ms; transition-timing-function: ease-out; }
