@@ -1,6 +1,7 @@
 /**
  * Endpoint for the rates page: appends each request-access form to the "Requests" tab and each rate card
- * form (kind "rates": name, company, email, phone) to the "Rate card" tab of the same Google Sheet.
+ * form (kind "rates": name, company, email, phone) to the "Rate card" tab of the same Google Sheet. The rate card
+ * form asks for the email first (kind "lookup"): an email already on the "Rate card" tab sees the rates at once.
  *
  * Setup (about 5 minutes):
  *   1. Create a Google Sheet. Open Extensions > Apps Script, delete the sample code and paste this file.
@@ -25,12 +26,15 @@ function doPost(e) {
   try { data = JSON.parse((e && e.postData && e.postData.contents) || '{}') } catch (err) { return reply({ ok: false, error: 'bad_json' }) }
 
   // Bots fill the hidden "fax" field or send the form within a couple of seconds of opening it: pretend success and
-  // store nothing
-  if (data.fax || Number(data.elapsed) < 2500) return reply({ ok: true })
+  // store nothing. The lookup has no time trap: an autofilled email is sent at once
+  if (data.fax || (data.kind !== 'lookup' && Number(data.elapsed) < 2500)) return reply({ ok: true })
 
   const email = clean(data.email, 200).toLowerCase()
   const problem = emailProblem(email)
   if (problem) return reply({ ok: false, error: problem })
+
+  // Answers only yes or no: nothing stored for the email is sent back
+  if (data.kind === 'lookup') return reply({ ok: true, known: known(email) })
 
   if (data.kind === 'rates') {
     const phone = clean(data.phone, 30)
@@ -52,6 +56,13 @@ function doPost(e) {
     new Date(), cell(data.country, 80), data.flow, data.volume, website, cell(email, 200), cell(data.notes, 1000),
   ])
   return reply({ ok: true })
+}
+
+// True when the "Rate card" tab already has a row with this email (column D)
+function known(email) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(RATES_SHEET)
+  if (!sheet || sheet.getLastRow() < 2) return false
+  return sheet.getRange(2, 4, sheet.getLastRow() - 1, 1).getValues().some(r => String(r[0]).trim().toLowerCase() === email)
 }
 
 function append(name, headers, row) {
